@@ -11,10 +11,10 @@ import (
 )
 
 func TestServiceClientsSuccess(t *testing.T) {
-	
+
 	srv := registrator.NewServer(15000)
 	go srv.Run()
-	
+
 	defer srv.Close()
 
 	client := scheme.Client{
@@ -35,7 +35,6 @@ func TestServiceClientsSuccess(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	
 	defer res.Body.Close()
 
 }
