@@ -16,13 +16,13 @@ type Producer struct {
 	*kafka.Writer
 }
 
-func (s *Producer) CreateWriter() *kafka.Writer {
+func CreateWriter(p Producer) *kafka.Writer {
 
-	addr := fmt.Sprintf("%s:%d", s.BrokerAddr, s.Port) 
+	addr := fmt.Sprintf("%s:%d", p.BrokerAddr, p.Port)
 
 	return &kafka.Writer{
 		Addr:     kafka.TCP(addr),
-		Topic:    s.Topic,
+		Topic:    p.Topic,
 		Balancer: &kafka.LeastBytes{},
 	}
 

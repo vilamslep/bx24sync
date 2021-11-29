@@ -1,6 +1,8 @@
 package scheme
 
 import (
+	"encoding/json"
+	"log"
 	"time"
 )
 
@@ -10,9 +12,15 @@ type Client struct {
 	UID	string `json:"uid"`
 }
 
-// func (s Client) String() string{
-	
-// }
+func (s Client) String() string{
+	res, err := json.Marshal(s)
+	if err != nil {
+		log.Panicf("Transform error: %s", err.Error())
+	}
+
+	return string(res)	
+
+}
 
 type Order struct {
 	Number string    `json:"number"`

@@ -1,9 +1,11 @@
 package registrator
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/vi-la-muerto/bx24-service/kafka/producer"
 )
@@ -22,35 +24,36 @@ const (
 )
 
 type Service struct {
-	Port int
 	producer.Producer
+	*http.Server
 	//AccessblyAddrs []string
 }
 
 func NewServer(port int) Service {
 
 	s := Service{
-		Port: port,
+		Server: &http.Server{
+			Addr: fmt.Sprintf(":%d", port),
+		},
+		Producer: producer.Producer{
+			BrokerAddr: "172.19.0.3",
+			Port:       9092,
+			Topic:      "clients.change",
+			Partition:  0,
+		},
 	}
 
-	s.Producer = producer.Producer{
-		BrokerAddr: "172.19.0.3",
-		Port:       9092,
-		Topic:      "clients.change",
-		Partition:  0,
-	}
-
-	s.Writer = s.CreateWriter()
+	s.Writer = producer.CreateWriter(s.Producer)
 
 	http.HandleFunc("/client", handleClient)
 
 	return s
 }
 
-func (s *Service) Start() {
-
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", s.Port), nil))
-
+func (s *Service) Run() {
+	if err := s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		log.Fatalf("listen: %s\n", err)
+	}
 }
 
 func handleClient(w http.ResponseWriter, r *http.Request) {
@@ -60,9 +63,24 @@ func handleClient(w http.ResponseWriter, r *http.Request) {
 	// 	return
 	// }
 
-	fmt.Fprintf(w, "Hi there, I love %s!", r.URL.Path[1:])
+
+		
+	// fmt.Fprintf(w, "Hi there, I love %s!", r.URL.Path[1:])
 }
 
 func (s *Service) Close() {
-	s.Producer.CloseWriter()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+
+	//extra handing
+	defer func() {
+		s.CloseWriter()
+		cancel()
+
+	}()
+
+	if err := s.Shutdown(ctx); err != nil {
+		log.Fatalf("Server Shutdown Failed:%+v", err)
+	}
+	log.Print("Server Exited Properly")
 }
