@@ -35,7 +35,7 @@ func NewServer(port int) Service {
 		Producer: producer.Producer{
 			BrokerAddr: "172.19.0.3",
 			Port:       9092,
-			Topic:      "clients.change",
+			Topic:      "changes",
 			Partition:  0,
 		},
 	}
