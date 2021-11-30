@@ -28,13 +28,13 @@ func CreateWriter(p Producer) *kafka.Writer {
 
 }
 
-func (s *Producer) WriteMessage(data fmt.Stringer, key string) error {
+func (s *Producer) WriteMessage(data string, key string) error {
 
 	err := s.WriteMessages(
 		context.Background(),
 		kafka.Message{
 			Key:       []byte(key),
-			Value:     []byte(data.String()),
+			Value:     []byte(data),
 			Partition: s.Partition,
 		},
 	)

@@ -1,10 +1,15 @@
 package registrator
 
+//TODO Logs to file
+
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/vi-la-muerto/bx24-service/kafka/producer"
@@ -14,14 +19,6 @@ import (
 //order
 //reception
 //shipment
-
-const (
-// success          = 200
-// badRequest       = 400
-// notFound         = 404
-// methodNotAllowed = 405
-// serverError      = 500
-)
 
 type Service struct {
 	producer.Producer
@@ -38,14 +35,14 @@ func NewServer(port int) Service {
 		Producer: producer.Producer{
 			BrokerAddr: "172.19.0.3",
 			Port:       9092,
-			Topic:      "clients.change",
+			Topic:      "changes",
 			Partition:  0,
 		},
 	}
 
 	s.Writer = producer.CreateWriter(s.Producer)
 
-	http.HandleFunc("/client", handleClient)
+	http.HandleFunc("/client", s.handlerClient())
 
 	return s
 }
@@ -54,18 +51,55 @@ func (s *Service) Run() {
 	if err := s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("listen: %s\n", err)
 	}
+
+	log.Println("Start service")
+
 }
 
-func handleClient(w http.ResponseWriter, r *http.Request) {
-	// if r.Method == "GET"{
-	// 	w.WriteHeader(http.StatusMethodNotAllowed)
-	// 	w.Write([]byte("Method Not Allowed"))
-	// 	return
-	// }
+func (s *Service) Echo() string {
+	return "Echo"
+}
 
+func (s *Service) handlerClient() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" {
+			w.WriteHeader(http.StatusForbidden)
+			w.Write([]byte("Permission denied"))
+			return
+		}
 
-		
-	// fmt.Fprintf(w, "Hi there, I love %s!", r.URL.Path[1:])
+		body, err := ioutil.ReadAll(r.Body)
+
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("Don't manage to get body"))
+			return
+		}
+
+		content := strings.ReplaceAll(string(body), "\n", "")
+
+		regStr := `^{"#",+[[:xdigit:]]{8}(-[[:xdigit:]]{4}){3}-[[:xdigit:]]{12},[\d]{1,6}:[[:xdigit:]]{32}}$`
+
+		matched, err := regexp.MatchString(regStr, content)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if !matched {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("Body isn't correctly"))
+			return
+		}
+
+		if ok := s.WriteMessage(content, "client"); ok != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("Don't manage to write message"))
+			return
+		}
+
+		w.Write([]byte("Message is writed"))
+	}
 }
 
 func (s *Service) Close() {
@@ -82,5 +116,6 @@ func (s *Service) Close() {
 	if err := s.Shutdown(ctx); err != nil {
 		log.Fatalf("Server Shutdown Failed:%+v", err)
 	}
+	
 	log.Print("Server Exited Properly")
 }
