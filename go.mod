@@ -4,5 +4,6 @@ go 1.16
 
 require (
 	github.com/denisenkom/go-mssqldb v0.11.0
+	github.com/gorilla/handlers v1.5.1
 	github.com/segmentio/kafka-go v0.4.25
 )

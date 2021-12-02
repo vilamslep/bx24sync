@@ -8,10 +8,12 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"regexp"
 	"strings"
 	"time"
 
+	"github.com/gorilla/handlers"
 	"github.com/vi-la-muerto/bx24-service/kafka/producer"
 )
 
@@ -30,7 +32,8 @@ func NewServer(port int) Service {
 
 	s := Service{
 		Server: &http.Server{
-			Addr: fmt.Sprintf(":%d", port),
+			Addr:    fmt.Sprintf(":%d", port),
+			Handler: handlers.LoggingHandler(os.Stdout, http.DefaultServeMux),
 		},
 		Producer: producer.Producer{
 			BrokerAddr: "172.19.0.3",
@@ -40,7 +43,7 @@ func NewServer(port int) Service {
 		},
 	}
 
-	s.Writer = producer.CreateWriter(s.Producer)
+	// s.Writer = producer.CreateWriter(s.Producer)
 
 	http.HandleFunc("/client", s.handlerClient())
 
@@ -62,6 +65,7 @@ func (s *Service) Echo() string {
 
 func (s *Service) handlerClient() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+
 		if r.Method == "GET" {
 			w.WriteHeader(http.StatusForbidden)
 			w.Write([]byte("Permission denied"))
@@ -97,8 +101,8 @@ func (s *Service) handlerClient() http.HandlerFunc {
 			w.Write([]byte("Don't manage to write message"))
 			return
 		}
-
 		w.Write([]byte("Message is writed"))
+
 	}
 }
 
