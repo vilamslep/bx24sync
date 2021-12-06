@@ -28,18 +28,18 @@ type Service struct {
 	//AccessblyAddrs []string
 }
 
-func NewServer(port int) Service {
+func NewServer(sPort int, bAddr string, bPort int, topic string, partition int) Service {
 
 	s := Service{
 		Server: &http.Server{
-			Addr:    fmt.Sprintf(":%d", port),
+			Addr:    fmt.Sprintf(":%d", sPort),
 			Handler: handlers.LoggingHandler(os.Stdout, http.DefaultServeMux),
 		},
 		Producer: producer.Producer{
-			BrokerAddr: "kafka",
-			Port:       9092,
-			Topic:      "changes",
-			Partition:  0,
+			BrokerAddr: bAddr,
+			Port:       bPort,
+			Topic:      topic,
+			Partition:  partition,
 		},
 	}
 
