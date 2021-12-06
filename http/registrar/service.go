@@ -1,4 +1,4 @@
-package registrator
+package registrar
 
 //TODO Logs to file
 
