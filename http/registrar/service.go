@@ -43,7 +43,7 @@ func NewServer(port int) Service {
 		},
 	}
 
-	// s.Writer = producer.CreateWriter(s.Producer)
+	s.Writer = producer.CreateWriter(s.Producer)
 
 	http.HandleFunc("/client", s.handlerClient())
 
