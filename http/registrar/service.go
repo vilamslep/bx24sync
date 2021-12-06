@@ -36,7 +36,7 @@ func NewServer(port int) Service {
 			Handler: handlers.LoggingHandler(os.Stdout, http.DefaultServeMux),
 		},
 		Producer: producer.Producer{
-			BrokerAddr: "172.19.0.3",
+			BrokerAddr: "kafka-network",
 			Port:       9092,
 			Topic:      "changes",
 			Partition:  0,
