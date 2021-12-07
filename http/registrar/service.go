@@ -1,4 +1,4 @@
-package registrator
+package registrar
 
 //TODO Logs to file
 
@@ -28,22 +28,22 @@ type Service struct {
 	//AccessblyAddrs []string
 }
 
-func NewServer(port int) Service {
+func NewServer(sPort int, bAddr string, bPort int, topic string, partition int) Service {
 
 	s := Service{
 		Server: &http.Server{
-			Addr:    fmt.Sprintf(":%d", port),
+			Addr:    fmt.Sprintf(":%d", sPort),
 			Handler: handlers.LoggingHandler(os.Stdout, http.DefaultServeMux),
 		},
 		Producer: producer.Producer{
-			BrokerAddr: "172.19.0.3",
-			Port:       9092,
-			Topic:      "changes",
-			Partition:  0,
+			BrokerAddr: bAddr,
+			Port:       bPort,
+			Topic:      topic,
+			Partition:  partition,
 		},
 	}
 
-	// s.Writer = producer.CreateWriter(s.Producer)
+	s.Writer = producer.CreateWriter(s.Producer)
 
 	http.HandleFunc("/client", s.handlerClient())
 
