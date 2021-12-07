@@ -59,10 +59,6 @@ func (s *Service) Run() {
 
 }
 
-func (s *Service) Echo() string {
-	return "Echo"
-}
-
 func (s *Service) handlerClient() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
