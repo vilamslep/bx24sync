@@ -28,7 +28,7 @@ type Service struct {
 	//AccessblyAddrs []string
 }
 
-func NewServer(sPort int, bAddr string, bPort int, topic string, partition int) Service {
+func NewServer(sPort int, bAddr string, bPort int, topic string, partition int, method string, checkInput bool, key string) Service {
 
 	s := Service{
 		Server: &http.Server{
@@ -45,7 +45,7 @@ func NewServer(sPort int, bAddr string, bPort int, topic string, partition int) 
 
 	s.Writer = producer.CreateWriter(s.Producer)
 
-	http.HandleFunc("/client", s.handlerClient())
+	http.HandleFunc(fmt.Sprintf("/%s", method), s.handlerMainMethod(checkInput, key))
 
 	return s
 }
@@ -56,10 +56,9 @@ func (s *Service) Run() {
 	}
 
 	log.Println("Start service")
-
 }
 
-func (s *Service) handlerClient() http.HandlerFunc {
+func (s *Service) handlerMainMethod(checkInput bool, key string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		if r.Method == "GET" {
@@ -78,21 +77,23 @@ func (s *Service) handlerClient() http.HandlerFunc {
 
 		content := strings.ReplaceAll(string(body), "\n", "")
 
-		regStr := `^{"#",+[[:xdigit:]]{8}(-[[:xdigit:]]{4}){3}-[[:xdigit:]]{12},[\d]{1,6}:[[:xdigit:]]{32}}$`
+		if checkInput {
+			regStr := `^{"#",+[[:xdigit:]]{8}(-[[:xdigit:]]{4}){3}-[[:xdigit:]]{12},[\d]{1,6}:[[:xdigit:]]{32}}$`
 
-		matched, err := regexp.MatchString(regStr, content)
+			matched, err := regexp.MatchString(regStr, content)
 
-		if err != nil {
-			log.Fatal(err)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			if !matched {
+				w.WriteHeader(http.StatusBadRequest)
+				w.Write([]byte("Body isn't correctly"))
+				return
+			}
 		}
 
-		if !matched {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("Body isn't correctly"))
-			return
-		}
-
-		if ok := s.WriteMessage(content, "client"); ok != nil {
+		if ok := s.WriteMessage(content, key); ok != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte("Don't manage to write message"))
 			return
