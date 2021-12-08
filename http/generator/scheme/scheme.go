@@ -39,8 +39,14 @@ type Client struct {
 	DiscountClinicService uint8         `json:"UF_CRM_1587720973"`
 	DiscountMedicalThings uint8         `json:"UF_CRM_1587720952"`
 	DiscountRayban        uint8         `json:"UF_CRM_1587720989"`
-	Phone                 string        `json:"PHONE"`
-	Email                 string        `json:"EMAIL"`
+	Phone                 []ContactData `json:"PHONE"`
+	Email                 []ContactData `json:"EMAIL"`
+}
+
+type ContactData struct {
+	ValueType string `json:"VALUE_TYPE"`
+	Value     string `json:"VALUE"`
+	TypeId    string `json:"TYPE_ID"`
 }
 
 func (s *Client) TransoftFromMap(data map[string]string) {
@@ -97,4 +103,56 @@ func (s *Client) TransoftFromMap(data map[string]string) {
 	}
 
 	s.Birthday = data["birthday"]
+
+	phones := data["Phone"]
+
+	sPhone := strings.Split(phones, ";")
+
+	for _, phone := range sPhone {
+		if phone != "" {
+			contData := ContactData{
+				ValueType: "WORK",
+				Value:     phone,
+				TypeId:    "PHONE",
+			}
+
+			s.Phone = append(s.Phone, contData)
+		}
+	}
+
+	emails := data["Email"]
+
+	sEmail := strings.Split(emails, ";")
+
+	for _, email := range sEmail {
+		if email != "" {
+			contData := ContactData{
+				ValueType: "WORK",
+				Value:     email,
+				TypeId:    "EMAIL",
+			}
+
+			s.Email = append(s.Phone, contData)
+		}
+	}
+}
+
+
+type GeneratorConfig struct {
+	DB        DataBaseConfig `json:"DB"`
+	Web       WebConfig      `json:"Web"`
+	QueryPath string         `json:"QueryPath"`
+}
+
+type DataBaseConfig struct {
+	Host     string `json:"Host"`
+	Port     int    `json:"Port"`
+	User     string `json:"User"`
+	Password string `json:"Password"`
+	Database string `json:"Database"`
+}
+
+type WebConfig struct {
+	Host string `json:"Host"`
+	Port int    `json:"Port"`
 }
