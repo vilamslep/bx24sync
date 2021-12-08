@@ -3,8 +3,8 @@ package scheme
 import "fmt"
 
 type Socket struct {
-	Host string `json:"Host"`
-	Port int    `json:"Port"`
+	Host string `json:"host"`
+	Port int    `json:"port"`
 }
 
 type GeneratorConfig struct {
@@ -19,9 +19,9 @@ type Auth struct {
 }
 
 type DataBaseAuth struct {
-	Socket string `json:"socker"`
-	Auth
-	Database string `json:"Database"`
+	Socket   `json:"socket"`
+	Auth     `json:"auth"`
+	Database string `json:"database"`
 }
 
 type Registrar struct {
@@ -30,10 +30,10 @@ type Registrar struct {
 }
 
 type ProducerConfig struct {
-	Broker Socket `json:"broker"`
-	Topic        string `json:"topic"`
-	Partition    int    `json:"partition"`
-	MessageKey   string `json:"messageKey"`
+	Broker     Socket `json:"broker"`
+	Topic      string `json:"topic"`
+	Partition  int    `json:"partition"`
+	MessageKey string `json:"messageKey"`
 }
 
 type Endpoint struct {
@@ -48,10 +48,6 @@ type ConsumerConfig struct {
 	TargetLink string `json:"target"`
 }
 
-
-func (s Socket) String() string{
+func (s Socket) String() string {
 	return fmt.Sprintf("%s:%d", s.Host, s.Port)
 }
-
-
-
