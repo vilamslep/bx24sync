@@ -1,12 +1,11 @@
 package main
 
 import (
-	"bytes"
+	// "bytes"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
-	"sync"
 	"time"
 )
 
@@ -14,50 +13,50 @@ func main() {
 
 	start := time.Now()
 	// Код для измерения
-	var wg sync.WaitGroup
 	duration := time.Since(start)
 	counter := 0
-	commonReq := 1000
+	commonReq := 500
 	for i := 0; i < commonReq; i++ {
-		wg.Add(1)
-		go func() {
 
-			defer wg.Done()
+		url := "https://portal.optic-center.ru/rest/475/bkittz3zhrr86z1o/crm.contact.list?filter[ORIGIN_ID]=3a33dfda-b969-11e3-81c1-00269e587e49"
 
-			content := "{\"#\",8f8a65b4-94c4-4794-b3e2-800d18d503ca,151:80baa4bf015829f711e9995968a3b691}"
+		req, err := http.NewRequest("GET", url, nil)
+		if err != nil {
+			log.Fatal("Error reading request. ", err)
+		}
 
-			url := "http://localhost:8082/client"
-			data := []byte(content)
+		req.Header.Set("Content-Type", "application/text")
+		req.Header.Set("Host", "localhost")
 
-			req, err := http.NewRequest("POST", url, bytes.NewBuffer(data))
-			if err != nil {
-				log.Fatal("Error reading request. ", err)
-			}
+		client := &http.Client{Timeout: time.Minute * 1}
 
-			req.Header.Set("Content-Type", "application/text")
-			req.Header.Set("Host", "localhost")
+		resp, err := client.Do(req)
+		if err != nil {
+			log.Println("Error reading response. ", err)
+			return
+		}
 
-			client := &http.Client{Timeout: time.Second * 10}
+		counter++
 
-			resp, err := client.Do(req)
-			if err != nil {
-				log.Fatal("Error reading response. ", err)
-			}
-			defer resp.Body.Close()
+		defer resp.Body.Close()
 
-			body, err := ioutil.ReadAll(resp.Body)
-			if err != nil {
-				log.Fatal("Error reading body. ", err)
-			}
-			if resp.StatusCode != 200 {
-				fmt.Printf("%s\n", body)
-			}
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			log.Fatal("Error reading body. ", err)
+		}
+		if resp.StatusCode != 200 {
+			fmt.Printf("%s\n", body)
+		}
 
-		}()
+		log.Printf("counter %d, status %d", counter, resp.StatusCode)
 
+		if counter%100 == 0 {
+			log.Println("Sleep")
+			time.Sleep(time.Second * 10)
+			log.Println("Wake")
+		}
 	}
-	wg.Wait()
 
 	fmt.Println(duration)
-	fmt.Println("Lost package ", counter)
+	// fmt.Println("Lost package ", counter)
 }
