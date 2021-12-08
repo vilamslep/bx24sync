@@ -21,7 +21,7 @@ import (
 //reception
 //shipment
 
-type Service struct {
+type Registrar struct {
 	producer.Producer
 	*http.Server
 	Config scheme.Registrar
@@ -35,15 +35,15 @@ func (f CheckInputEvent) Execute(body []byte) (bool, error) {
 	return f(body)
 }
 
-func NewServer(config scheme.Registrar) Service {
-	s := Service{Config: config}
+func NewRegistrar(config scheme.Registrar) Registrar {
+	s := Registrar{Config: config}
 	s.setSettings()
 	s.OpenWriter()
 
 	return s
 }
 
-func (s *Service) setSettings() {
+func (s *Registrar) setSettings() {
 	s.Server = &http.Server{
 		Addr:    s.Config.Endpoint.String(),
 		Handler: handlers.LoggingHandler(os.Stdout, http.DefaultServeMux),
@@ -56,7 +56,7 @@ func (s *Service) setSettings() {
 	}
 }
 
-func (s *Service) Run() {
+func (s *Registrar) Run() {
 
 	http.HandleFunc(fmt.Sprintf("/%s", s.Config.Method), s.handlerMainMethod(s.Config.MessageKey))
 
@@ -68,7 +68,7 @@ func (s *Service) Run() {
 
 }
 
-func (s *Service) CheckInput(body []byte) bool {
+func (s *Registrar) CheckInput(body []byte) bool {
 	checkResult := true
 
 	if s.CheckInputEvent != nil {
@@ -80,7 +80,7 @@ func (s *Service) CheckInput(body []byte) bool {
 	return checkResult
 }
 
-func (s *Service) handlerMainMethod(key string) http.HandlerFunc {
+func (s *Registrar) handlerMainMethod(key string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" {
 			w.WriteHeader(http.StatusForbidden)
@@ -123,7 +123,7 @@ func (s *Service) handlerMainMethod(key string) http.HandlerFunc {
 	}
 }
 
-func (s *Service) Close() {
+func (s *Registrar) Close() {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 

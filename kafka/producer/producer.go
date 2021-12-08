@@ -2,39 +2,35 @@ package producer
 
 import (
 	"context"
-	"fmt"
 	"log"
 
 	"github.com/segmentio/kafka-go"
 )
 
 type Producer struct {
-	BrokerAddr string
-	Port       int
+	Addr string
 	Topic      string
 	Partition  int
 	*kafka.Writer
 }
 
-func CreateWriter(p Producer) *kafka.Writer {
+func (p *Producer)OpenWriter() {
 
-	addr := fmt.Sprintf("%s:%d", p.BrokerAddr, p.Port)
-
-	return &kafka.Writer{
-		Addr:     kafka.TCP(addr),
+	p.Writer = &kafka.Writer{
+		Addr:     kafka.TCP(p.Addr),
 		Topic:    p.Topic,
 		Balancer: &kafka.LeastBytes{},
 	}
 
 }
 
-func (s *Producer) WriteMessage(data string, key string) error {
+func (s *Producer) WriteMessage(data []byte, key string) error {
 
 	err := s.WriteMessages(
 		context.Background(),
 		kafka.Message{
 			Key:       []byte(key),
-			Value:     []byte(data),
+			Value:     data,
 			Partition: s.Partition,
 		},
 	)
@@ -55,5 +51,4 @@ func (s *Producer) CloseWriter() error {
 	}
 
 	return nil
-
 }
