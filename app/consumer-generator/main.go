@@ -47,13 +47,7 @@ func main() {
 
 	go Run(reader, dbEndpoint, registrarEndpoint, needToClose, exit)
 
-	//wait signal
-	<-done
-
-	needToClose <- true
-
-	<-exit
-
+	wait(done, needToClose, exit)
 }
 
 func getEnvWithFallback(env string, fallback string) string {
@@ -177,4 +171,10 @@ func sendToRegistrar(data []byte, url string) error {
 	}
 
 	return nil
+}
+
+func wait(done chan os.Signal, needToClose chan bool, exit chan bool) {
+	<-done
+	needToClose <- true
+	<-exit
 }
