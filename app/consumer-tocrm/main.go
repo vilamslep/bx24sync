@@ -72,6 +72,8 @@ func getKafkaReader(brokers string, topic string, groupId string) *kafka.Reader 
 func Run(reader *kafka.Reader, url string, needToClose chan bool, exit chan bool) {
 	defer reader.Close()
 
+	var marker = make(chan struct{}, 10) 
+
 	for {
 		select {
 		case <-needToClose:
@@ -79,13 +81,18 @@ func Run(reader *kafka.Reader, url string, needToClose chan bool, exit chan bool
 			return
 		default:
 			if m, err := reader.ReadMessage(context.Background()); err == nil {
-				if crmErr := sendContactToCrm(&m, url); crmErr != nil {
-					log.Errorf("sending to crm", crmErr.Error())
-					time.Sleep(time.Minute)
-				}
+				marker <- struct{}{}
+				go func(message *kafka.Message, marker chan struct{}) {
+					<-marker
+					if crmErr := sendContactToCrm(message, url); crmErr != nil {
+						log.Errorf("sending to crm", crmErr.Error())
+						time.Sleep(time.Second * 15)
+					}
+				}(&m, marker)
+				
 			} else {
 				log.Errorf("reading from topic: %s\n", err.Error())
-				time.Sleep(time.Minute)
+				time.Sleep(time.Second * 15)
 				continue
 			}
 		}

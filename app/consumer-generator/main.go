@@ -77,6 +77,7 @@ func Run(
 	log.Info("Start service")
 
 	defer reader.Close()
+	var marker = make(chan struct{},5) 
 	for {
 		select {
 		case <-needToClose:
@@ -86,24 +87,31 @@ func Run(
 			m, err := reader.ReadMessage(context.Background())
 			if err != nil {
 				log.Errorf("reading from topic: %s\n", err.Error())
-				time.Sleep(time.Minute)
+				time.Sleep(time.Second * 15)
 				continue
 			}
-			if data, err := getDataFromDatabase(&m, dbEndpoint); err == nil {
+			//take marker
+			marker<-struct{}{}
 
-				reqErr := sendToRegistrar(data, registrarEndpoint)
+			go func(message *kafka.Message, marker chan struct{}) {
+				if data, err := getDataFromDatabase(message, dbEndpoint); err == nil {
 
-				if reqErr != nil {
-					log.Errorf("sending to registrator:%s\n", reqErr.Error())
+					reqErr := sendToRegistrar(data, registrarEndpoint)
+	
+					if reqErr != nil {
+						log.Errorf("sending to registrator:%s\n", reqErr.Error())
+						time.Sleep(time.Second * 15)
+					}
+	
+				} else {
+					log.Errorf("getting from dbms host", err.Error())
 					time.Sleep(time.Minute)
 				}
+				//give marker
+				<-marker
 
-			} else {
-				log.Errorf("getting from dbms host", err.Error())
-				time.Sleep(time.Minute)
-			}
+			}(&m, marker)
 		}
-
 	}
 }
 
