@@ -99,7 +99,7 @@ func isBinaryTrue(value string) bool {
 func stringToUint8(val string) uint8 {
 
 	result := uint8(0)
-
+	
 	if value, err := strconv.Atoi(val); err == nil {
 		result = uint8(value)
 	}

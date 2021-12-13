@@ -12,7 +12,6 @@ import (
 
 func main() {
 
-
 	logFile := "app.log"
 
 	f, err := os.OpenFile(logFile, os.O_CREATE|os.O_APPEND, 0666)
@@ -32,14 +31,14 @@ func main() {
 	configContent, err := ioutil.ReadFile(fConf)
 
 	if err != nil {
-		log.Fatalf("opening conf file: %s\n",err.Error())
+		log.Fatalf("opening conf file: %s\n", err.Error())
 	}
 
 	config := scheme.GeneratorConfig{}
 	err = json.Unmarshal(configContent, &config)
 
 	if err != nil {
-		log.Fatalf("unmarshal conf file: %s\n",err.Error())
+		log.Fatalf("unmarshal conf file: %s\n", err.Error())
 	}
 
 	s := generator.NewServer(config)

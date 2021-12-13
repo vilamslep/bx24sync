@@ -101,7 +101,17 @@ func (s *Service) handlerMainMethod() http.HandlerFunc {
 
 		queryText := strings.ReplaceAll(s.QueryText["main_client"], "${client}", id)
 
-		data := s.executeAndReadQuery(queryText)
+		data, err := s.executeAndReadQuery(queryText)
+
+		if err != nil {
+
+			log.Errorf("getting from db: %s", err.Error())
+
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(err.Error()))
+
+			return
+		}
 
 		contact, err := transformToSctruct(data)
 
@@ -146,20 +156,22 @@ func checkInput(body []byte) bool {
 
 }
 
-func (s *Service) executeAndReadQuery(text string) []map[string]string {
+func (s *Service) executeAndReadQuery(text string) ([]map[string]string, error) {
 	rows, err := s.DB.Query(text)
 
+	data := make([]map[string]string, 0)
+	pretty := make(map[string]string)
+
 	if err != nil {
-		log.Fatalf("executing query: %s", err.Error())
+		log.Errorf("executing query: %s", err.Error())
+		return data, err
 	}
 
 	cols, err := rows.Columns()
 	if err != nil {
-		log.Fatalf("not correctly response from db: %s", err.Error())
+		log.Errorf("not correctly response from db: %s", err.Error())
+		return data, err
 	}
-
-	data := make([]map[string]string, 0)
-	pretty := make(map[string]string)
 
 	results := make([]interface{}, len(cols))
 	for i := range results {
@@ -168,7 +180,8 @@ func (s *Service) executeAndReadQuery(text string) []map[string]string {
 
 	for rows.Next() {
 		if err := rows.Scan(results[:]...); err != nil {
-			log.Fatalf("scaning response from db: %s", err.Error())
+			log.Errorf("scaning response from db: %s", err.Error())
+			return data, err
 		}
 		for i := range results {
 			val := *results[i].(*interface{})
@@ -191,7 +204,7 @@ func (s *Service) executeAndReadQuery(text string) []map[string]string {
 
 	}
 
-	return data
+	return data, nil
 }
 
 func transformToSctruct(data []map[string]string) (bitrix24.Contact, error) {

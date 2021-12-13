@@ -22,13 +22,13 @@ SELECT
 	CONVERT(VARCHAR(40), client._IDRRef, 2) as originId,
 	client._Description AS name,
 	client._Fld3808 AS birthday,
-	gender._EnumOrder AS gender,
+	ISNULL(gender._EnumOrder,100) AS gender,
 	client._Fld3795 AS isClient,
 	client._Fld3797 AS isSuppler,
 	client._Fld3801 AS otherRelition,
 	client._Fld17995 AS isWorker,
 	client._Fld17962 AS isRetireeOrDisabledPerson,
-	ISNULL(connectionway._Enumorder, 2) AS connectionway,
+	ISNULL(connectionway._Enumorder, 100) AS connectionway,
 	client._Fld18000  AS InRayBanClub,
 	CASE 
 		WHEN client._IDRRef IN
@@ -278,7 +278,11 @@ SELECT
 			)
 	) AS originId,
 	_client.name,
-	FORMAT(DATEADD(YEAR, -@yearsOffset, _client.birthday), 'dd.MM.yyyy', 'ru-RU') as birthday,
+	CASE
+		WHEN _client.birthday = '2001-01-01 00:00:00.000'
+		THEN NULL
+		ELSE FORMAT(DATEADD(YEAR, -@yearsOffset, _client.birthday), 'dd.MM.yyyy', 'ru-RU')
+	END AS birthday,
 	_client.gender,
 	_client.isClient,
 	_client.isSuppler,
