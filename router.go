@@ -1,11 +1,14 @@
 package bx24sync
 
 import (
+	"bytes"
 	"io"
 	"net/http"
 
 	log "github.com/sirupsen/logrus"
 )
+
+type CheckInput func(r io.Reader) bool
 
 type Router struct {
 	methods map[string]*HttpMethod
@@ -24,16 +27,11 @@ func (r *Router) AddMethod(method HttpMethod) {
 func (r Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	url := *req.URL
-
 	logger := writerLogger{ResponseWriter: w, status: 200}
 
 	if method, ok := r.methods[url.Path]; ok {
 
-		ok := r.checkInput(*method, req.Body)
-		if !ok {
-			logger.WriteHeader(http.StatusBadGateway)
-			logger.Write([]byte("Body isn't correctly"))
-
+		if !r.checkInputEvent(method, &logger, req) {
 			return
 		}
 
@@ -53,18 +51,57 @@ func (r Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}).Info("Access")
 }
 
-func (s *Router) checkInput(m HttpMethod, r io.Reader) (res bool) {
-	
-	res = m.CheckInput == nil
-	
-	if m.CheckInput != nil {
-		res = m.CheckInput(r)
+func (r *Router) checkInputEvent(method *HttpMethod, w http.ResponseWriter, req *http.Request) (ok bool) {
+
+	ok = true
+	if method.CheckInput != nil {
+		if ok, req.Body = method.checkInput(req.Body); !ok {
+			w.WriteHeader(http.StatusBadGateway)
+			w.Write([]byte("Body isn't correctly"))
+			return
+		}
 	}
 
+	return ok
+}
+
+type HttpMethod struct {
+	Path    string
+	Handler http.HandlerFunc
+	CheckInput
+	AllowMethods []string
+}
+
+func (m *HttpMethod) isAllow(typeMethod string) bool {
+	res := false
+	for _, v := range m.AllowMethods {
+		if v == typeMethod {
+			res = true
+			break
+		}
+	}
 	return res
 }
 
+//read data and save thet into new reader for reader have data in method's handler
+func (m *HttpMethod) checkInput(r io.Reader) (res bool, reader io.ReadCloser) {
 
+	res = m.CheckInput == nil
+
+	var buf bytes.Buffer
+
+	tee := io.TeeReader(r, &buf)
+
+	if m.CheckInput != nil {
+		res = m.CheckInput(tee)
+	} else {
+		io.ReadAll(tee)
+	}
+
+	reader = io.NopCloser(bytes.NewReader(buf.Bytes()))
+
+	return res, reader
+}
 
 type writerLogger struct {
 	http.ResponseWriter
@@ -79,3 +116,4 @@ func (l *writerLogger) WriteHeader(code int) {
 func (l *writerLogger) Status() int {
 	return l.status
 }
+

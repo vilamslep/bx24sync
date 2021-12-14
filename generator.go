@@ -9,13 +9,13 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"os"
+
+	//"os"
 	"regexp"
 	"strings"
 	"time"
 
 	mssql "github.com/denisenkom/go-mssqldb"
-	"github.com/gorilla/handlers"
 	log "github.com/sirupsen/logrus"
 	"github.com/vi-la-muerto/bx24sync/bitrix24"
 )
@@ -41,8 +41,8 @@ func NewServer(config GeneratorConfig) Service {
 
 	s := Service{
 		Server: &http.Server{
-			Addr:    fmt.Sprintf(":%d", config.Web.Port),
-			Handler: handlers.LoggingHandler(os.Stdout, http.DefaultServeMux),
+			Addr: fmt.Sprintf(":%d", config.Web.Port),
+			// Handler: handlers.LoggingHandler(os.Stdout, http.DefaultServeMux),
 		},
 		DB: db,
 	}

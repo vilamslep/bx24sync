@@ -1,255 +1,255 @@
 package main
 
-import (
-	"bytes"
-	"encoding/json"
-	"fmt"
-	"io"
-	"io/ioutil"
-	"net/http"
-	"os"
-	"os/signal"
-	"strings"
-	"syscall"
-	"time"
-	"context"
+// import (
+// 	"bytes"
+// 	"encoding/json"
+// 	"fmt"
+// 	"io"
+// 	"io/ioutil"
+// 	"net/http"
+// 	"os"
+// 	"os/signal"
+// 	"strings"
+// 	"syscall"
+// 	"time"
+// 	"context"
 
-	"github.com/segmentio/kafka-go"
-	log "github.com/sirupsen/logrus"
-	"github.com/vi-la-muerto/bx24-service/scheme/bitrix24"
-)
+// 	"github.com/segmentio/kafka-go"
+// 	log "github.com/sirupsen/logrus"
+// 	"github.com/vi-la-muerto/bx24-service/scheme/bitrix24"
+// )
 
-//env
-const (
-	bx24RestUrl = "BITRIX24_REST_URL"
-	kBrokers    = "KAFKA_BROKERS"
-	ktopic      = "KAFKA_TOPIC"
-	kGroupId    = "KAFKA_CONSUMER_GROUP"
-)
+// //env
+// const (
+// 	bx24RestUrl = "BITRIX24_REST_URL"
+// 	kBrokers    = "KAFKA_BROKERS"
+// 	ktopic      = "KAFKA_TOPIC"
+// 	kGroupId    = "KAFKA_CONSUMER_GROUP"
+// )
 
-func main() {
+// func main() {
 
-	var restUrl, brokers, topic, groupId string
+// 	var restUrl, brokers, topic, groupId string
 
-	restUrl = getEnvWithFallback(bx24RestUrl, "https://domain.bitrix24.ru/rest/")
-	brokers = getEnvWithFallback(kBrokers, "bootstrap-server")
-	topic = getEnvWithFallback(ktopic, "tocrm")
-	groupId = getEnvWithFallback(kGroupId, "crm")
+// 	restUrl = getEnvWithFallback(bx24RestUrl, "https://domain.bitrix24.ru/rest/")
+// 	brokers = getEnvWithFallback(kBrokers, "bootstrap-server")
+// 	topic = getEnvWithFallback(ktopic, "tocrm")
+// 	groupId = getEnvWithFallback(kGroupId, "crm")
 
-	//new chanel and exec subscription for handing
-	done := make(chan os.Signal, 1)
-	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+// 	//new chanel and exec subscription for handing
+// 	done := make(chan os.Signal, 1)
+// 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
-	needToClose := make(chan bool, 1)
-	exit := make(chan bool, 1)
+// 	needToClose := make(chan bool, 1)
+// 	exit := make(chan bool, 1)
 
-	go Run(
-		getKafkaReader(brokers, topic, groupId),
-		restUrl,
-		needToClose,
-		exit)
+// 	go Run(
+// 		getKafkaReader(brokers, topic, groupId),
+// 		restUrl,
+// 		needToClose,
+// 		exit)
 
-	wait(done, needToClose, exit)
-}
+// 	wait(done, needToClose, exit)
+// }
 
-func getEnvWithFallback(env string, fallback string) string {
-	val := os.Getenv(env)
-	if len(val) == 0 {
-		return fallback
-	}
-	return val
-}
+// func getEnvWithFallback(env string, fallback string) string {
+// 	val := os.Getenv(env)
+// 	if len(val) == 0 {
+// 		return fallback
+// 	}
+// 	return val
+// }
 
-func getKafkaReader(brokers string, topic string, groupId string) *kafka.Reader {
-	slBrokers := strings.Split(brokers, ",")
-	return kafka.NewReader(kafka.ReaderConfig{
-		Brokers: slBrokers,
-		GroupID: groupId,
-		Topic:   topic,
-	})
-}
+// func getKafkaReader(brokers string, topic string, groupId string) *kafka.Reader {
+// 	slBrokers := strings.Split(brokers, ",")
+// 	return kafka.NewReader(kafka.ReaderConfig{
+// 		Brokers: slBrokers,
+// 		GroupID: groupId,
+// 		Topic:   topic,
+// 	})
+// }
 
-func Run(reader *kafka.Reader, url string, needToClose chan bool, exit chan bool) {
-	defer reader.Close()
+// func Run(reader *kafka.Reader, url string, needToClose chan bool, exit chan bool) {
+// 	defer reader.Close()
 
-	var marker = make(chan struct{}, 10) 
+// 	var marker = make(chan struct{}, 10) 
 
-	for {
-		select {
-		case <-needToClose:
-			exit <- true
-			return
-		default:
-			if m, err := reader.ReadMessage(context.Background()); err == nil {
-				marker <- struct{}{}
-				go func(message *kafka.Message, marker chan struct{}) {
-					<-marker
-					if crmErr := sendContactToCrm(message, url); crmErr != nil {
-						log.Errorf("sending to crm", crmErr.Error())
-						time.Sleep(time.Second * 15)
-					}
-				}(&m, marker)
+// 	for {
+// 		select {
+// 		case <-needToClose:
+// 			exit <- true
+// 			return
+// 		default:
+// 			if m, err := reader.ReadMessage(context.Background()); err == nil {
+// 				marker <- struct{}{}
+// 				go func(message *kafka.Message, marker chan struct{}) {
+// 					<-marker
+// 					if crmErr := sendContactToCrm(message, url); crmErr != nil {
+// 						log.Errorf("sending to crm", crmErr.Error())
+// 						time.Sleep(time.Second * 15)
+// 					}
+// 				}(&m, marker)
 				
-			} else {
-				log.Errorf("reading from topic: %s\n", err.Error())
-				time.Sleep(time.Second * 15)
-				continue
-			}
-		}
-	}
-}
+// 			} else {
+// 				log.Errorf("reading from topic: %s\n", err.Error())
+// 				time.Sleep(time.Second * 15)
+// 				continue
+// 			}
+// 		}
+// 	}
+// }
 
-func sendContactToCrm(message *kafka.Message, url string) error {
+// func sendContactToCrm(message *kafka.Message, url string) error {
 
-	client := bitrix24.Contact{}
-	if decErr := json.Unmarshal(message.Value, &client); decErr != nil {
-		return decErr
-	}
+// 	client := bitrix24.Contact{}
+// 	if decErr := json.Unmarshal(message.Value, &client); decErr != nil {
+// 		return decErr
+// 	}
 
-	oridinId := client.Id
+// 	oridinId := client.Id
 
-	if id, err := findContact(oridinId, url); err == nil {
-		if id == "" {
-			return addContact(url, client)
-		} else {
-			return updateContact(id, url, client)
-		}
-	}
+// 	if id, err := findContact(oridinId, url); err == nil {
+// 		if id == "" {
+// 			return addContact(url, client)
+// 		} else {
+// 			return updateContact(id, url, client)
+// 		}
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
-func findContact(originId string, rootUrl string) (string, error) {
+// func findContact(originId string, rootUrl string) (string, error) {
 
-	workUrl := fmt.Sprintf("%s%s?filter[ORIGIN_ID]=%s", rootUrl, "crm.contact.list", originId)
+// 	workUrl := fmt.Sprintf("%s%s?filter[ORIGIN_ID]=%s", rootUrl, "crm.contact.list", originId)
 
-	if response, err := createAndExecuteRequest(makeGETRequest, workUrl, nil); err == nil {
+// 	if response, err := createAndExecuteRequest(makeGETRequest, workUrl, nil); err == nil {
 
-		defer response.Body.Close()
+// 		defer response.Body.Close()
 
-		body, err := ioutil.ReadAll(response.Body)
+// 		body, err := ioutil.ReadAll(response.Body)
 
-		if err != nil {
-			return "", err
-		}
+// 		if err != nil {
+// 			return "", err
+// 		}
 
-		if response.StatusCode != http.StatusOK {
-			return "", fmt.Errorf("bad requests: %s", string(body))
-		}
+// 		if response.StatusCode != http.StatusOK {
+// 			return "", fmt.Errorf("bad requests: %s", string(body))
+// 		}
 
-		result := bitrix24.BitrixRestResponse{}
+// 		result := bitrix24.BitrixRestResponse{}
 
-		decErr := json.Unmarshal(body, &result)
+// 		decErr := json.Unmarshal(body, &result)
 
-		if decErr != nil {
-			return "", err
-		}
+// 		if decErr != nil {
+// 			return "", err
+// 		}
 
-		if result.Total == 0 {
-			return "", nil
-		} else {
-			return result.Result[0].ID, nil
-		}
-	} else {
-		return "", err
-	}
-}
+// 		if result.Total == 0 {
+// 			return "", nil
+// 		} else {
+// 			return result.Result[0].ID, nil
+// 		}
+// 	} else {
+// 		return "", err
+// 	}
+// }
 
-func addContact(rootUrl string, client bitrix24.Contact) error {
+// func addContact(rootUrl string, client bitrix24.Contact) error {
 
-	workUrl := fmt.Sprintf("%s%s", rootUrl, "crm.contact.add")
+// 	workUrl := fmt.Sprintf("%s%s", rootUrl, "crm.contact.add")
 
-	data := make(map[string]bitrix24.Contact)
-	data["fields"] = client
+// 	data := make(map[string]bitrix24.Contact)
+// 	data["fields"] = client
 
-	content, encErr := json.Marshal(data)
+// 	content, encErr := json.Marshal(data)
 
-	breader := bytes.NewReader(content)
+// 	breader := bytes.NewReader(content)
 
-	if encErr != nil {
-		return encErr
-	}
+// 	if encErr != nil {
+// 		return encErr
+// 	}
 
-	if response, err := createAndExecuteRequest(makePOSTRequest, workUrl, breader); err == nil {
-		defer response.Body.Close()
+// 	if response, err := createAndExecuteRequest(makePOSTRequest, workUrl, breader); err == nil {
+// 		defer response.Body.Close()
 
-		if response.StatusCode != http.StatusOK {
-			body, err := ioutil.ReadAll(response.Body)
+// 		if response.StatusCode != http.StatusOK {
+// 			body, err := ioutil.ReadAll(response.Body)
 
-			if err != nil {
-				return err
-			}
-			return fmt.Errorf(fmt.Sprintf("%s: %s", "bad request", string(body)))
-		}
-	} else {
-		return err
-	}
-	return nil
-}
+// 			if err != nil {
+// 				return err
+// 			}
+// 			return fmt.Errorf(fmt.Sprintf("%s: %s", "bad request", string(body)))
+// 		}
+// 	} else {
+// 		return err
+// 	}
+// 	return nil
+// }
 
-func updateContact(id string, rootUrl string, client bitrix24.Contact) error {
+// func updateContact(id string, rootUrl string, client bitrix24.Contact) error {
 
-	workUrl := fmt.Sprintf("%s%s?id=%s", rootUrl, "crm.contact.update", id)
+// 	workUrl := fmt.Sprintf("%s%s?id=%s", rootUrl, "crm.contact.update", id)
 
-	data := make(map[string]bitrix24.Contact)
-	data["fields"] = client
+// 	data := make(map[string]bitrix24.Contact)
+// 	data["fields"] = client
 
-	content, encErr := json.Marshal(data)
+// 	content, encErr := json.Marshal(data)
 
-	breader := bytes.NewReader(content)
+// 	breader := bytes.NewReader(content)
 
-	if encErr != nil {
-		return encErr
-	}
+// 	if encErr != nil {
+// 		return encErr
+// 	}
 
-	if response, err := createAndExecuteRequest(makePOSTRequest, workUrl, breader); err == nil {
-		defer response.Body.Close()
+// 	if response, err := createAndExecuteRequest(makePOSTRequest, workUrl, breader); err == nil {
+// 		defer response.Body.Close()
 
-		if response.StatusCode != http.StatusOK {
-			body, err := ioutil.ReadAll(response.Body)
+// 		if response.StatusCode != http.StatusOK {
+// 			body, err := ioutil.ReadAll(response.Body)
 
-			if err != nil {
-				return err
-			}
-			return fmt.Errorf(fmt.Sprintf("%s: %s", "bad request", string(body)))
-		}
-	} else {
-		return err
-	}
-	return nil
-}
+// 			if err != nil {
+// 				return err
+// 			}
+// 			return fmt.Errorf(fmt.Sprintf("%s: %s", "bad request", string(body)))
+// 		}
+// 	} else {
+// 		return err
+// 	}
+// 	return nil
+// }
 
-func createAndExecuteRequest(getReq func(string, io.Reader) (*http.Request, error), url string, body io.Reader) (*http.Response, error) {
+// func createAndExecuteRequest(getReq func(string, io.Reader) (*http.Request, error), url string, body io.Reader) (*http.Response, error) {
 
-	request, err := getReq(url, body)
+// 	request, err := getReq(url, body)
 
-	if err != nil {
-		return nil, err
-	}
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	request.Header.Set("Content-Type", "application/json")
+// 	request.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{Timeout: time.Minute * 1}
+// 	client := &http.Client{Timeout: time.Minute * 1}
 
-	response, err := client.Do(request)
+// 	response, err := client.Do(request)
 
-	if err != nil {
-		return nil, err
-	}
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	return response, nil
-}
+// 	return response, nil
+// }
 
-func makeGETRequest(url string, body io.Reader) (*http.Request, error) {
-	return http.NewRequest("GET", url, body)
-}
+// func makeGETRequest(url string, body io.Reader) (*http.Request, error) {
+// 	return http.NewRequest("GET", url, body)
+// }
 
-func makePOSTRequest(url string, body io.Reader) (*http.Request, error) {
-	return http.NewRequest("POST", url, body)
-}
+// func makePOSTRequest(url string, body io.Reader) (*http.Request, error) {
+// 	return http.NewRequest("POST", url, body)
+// }
 
-func wait(done chan os.Signal, needToClose chan bool, exit chan bool) {
-	<-done
-	needToClose <- true
-	<-exit
-}
+// func wait(done chan os.Signal, needToClose chan bool, exit chan bool) {
+// 	<-done
+// 	needToClose <- true
+// 	<-exit
+// }
