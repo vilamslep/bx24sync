@@ -49,7 +49,6 @@ type Contact struct {
 	Email                 []ContactData `json:"EMAIL"`
 }
 
-
 func (s *Contact) TransoftFromMap(data map[string]string) {
 
 	s.Id = data["originId"]
@@ -77,17 +76,20 @@ func (s *Contact) TransoftFromMap(data map[string]string) {
 }
 
 func (s *Contact) transforName(val string) {
-	pathName := strings.Split(val, " ")
 
-	switch len(pathName) {
-	case 2:
-		s.LastName = pathName[0]
-		s.Name = pathName[1]
-	case 3:
-		s.LastName = pathName[0]
-		s.Name = pathName[1]
-		s.SecondName = pathName[2]
-	default:
+	valWithoutNum := val
+	for _, v := range []string{"1", "2", "3", "4", "5", "6", "7", "8", "9", "0"} {
+		valWithoutNum = strings.ReplaceAll(valWithoutNum, string(v), "")
+	}
+
+	pathName := strings.Split(valWithoutNum, " ")
+
+	lengh := len(pathName)
+	if lengh >= 3 {
+		s.LastName, s.Name, s.SecondName = pathName[0], pathName[1], pathName[2]
+	} else if lengh == 2 {
+		s.LastName, s.Name = pathName[0], pathName[1]
+	} else {
 		s.Name = val
 	}
 }
@@ -99,7 +101,7 @@ func isBinaryTrue(value string) bool {
 func stringToUint8(val string) uint8 {
 
 	result := uint8(0)
-	
+
 	if value, err := strconv.Atoi(val); err == nil {
 		result = uint8(value)
 	}

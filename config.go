@@ -1,4 +1,4 @@
-package scheme
+package bx24sync
 
 import "fmt"
 
@@ -24,7 +24,7 @@ type DataBaseAuth struct {
 	Database string `json:"database"`
 }
 
-type Registrar struct {
+type RegistrarConfig struct {
 	ProducerConfig
 	Endpoint
 }

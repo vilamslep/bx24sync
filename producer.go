@@ -1,4 +1,4 @@
-package producer
+package bx24sync
 
 import (
 	"context"

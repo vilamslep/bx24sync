@@ -1,4 +1,4 @@
-package generator
+package bx24sync
 
 import (
 	"context"
@@ -17,8 +17,7 @@ import (
 	mssql "github.com/denisenkom/go-mssqldb"
 	"github.com/gorilla/handlers"
 	log "github.com/sirupsen/logrus"
-	"github.com/vi-la-muerto/bx24-service/scheme"
-	"github.com/vi-la-muerto/bx24-service/scheme/bitrix24"
+	"github.com/vi-la-muerto/bx24sync/bitrix24"
 )
 
 type Service struct {
@@ -27,7 +26,7 @@ type Service struct {
 	QueryText map[string]string
 }
 
-func NewServer(config scheme.GeneratorConfig) Service {
+func NewServer(config GeneratorConfig) Service {
 
 	connector, err := mssql.NewConnector(makeConnURL(config.DB).String())
 
@@ -244,7 +243,7 @@ func (s *Service) Close() {
 	log.Info("Server Exited Properly")
 }
 
-func makeConnURL(config scheme.DataBaseAuth) *url.URL {
+func makeConnURL(config DataBaseAuth) *url.URL {
 
 	return &url.URL{
 		Scheme: "sqlserver",
