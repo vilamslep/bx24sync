@@ -1,17 +1,18 @@
 package changes
 
 import (
-	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os"
-	"regexp"
-	"strconv"
-	"strings"
+	"os/signal"
+	"syscall"
+	"context"
+	"time"
 
-	kafka "github.com/segmentio/kafka-go"
+	"github.com/segmentio/kafka-go"
 	bx24 "github.com/vi-la-muerto/bx24sync"
+	"github.com/vi-la-muerto/bx24sync/app"
 )
 
 const (
@@ -29,27 +30,46 @@ const (
 )
 
 func Run() (err error) {
+	
 	config := getConfigFromEnv()
-	router := bx24.NewRouter(os.Stdout, os.Stderr)
+	
+	writer := app.GetKafkaWriter(config.Broker.String(), config.Topic)
 
-	writer := getKafkaWriter(config.Broker.String(), config.Topic)
-
-	router.AddMethod(bx24.HttpMethod{
-		Path:       "/client",
-		Handler:    handlerClient(writer),
-		CheckInput: handlerCheckInput,
-	})
+	router := getRouter(os.Stdin, os.Stderr, true, writer)
 
 	server := &http.Server{
 		Addr:    config.Http.String(),
 		Handler: router,
 	}
 
-	func() {
+	done := make(chan os.Signal, 1)
+	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		log.Println("Start server")
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Can't start to listener: %s\n", err)
 		}
 	}()
+
+	//wait signal
+	<-done
+
+
+	//free up resources
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+
+	defer func() {
+		writer.Close()
+		cancel()
+
+	}()
+
+	if err := server.Shutdown(ctx); err != nil {
+		log.Fatalf("server shutdown failed:%+v\n", err)
+	}
+
+	log.Println("server exited properly")
 
 	return err
 }
@@ -57,70 +77,52 @@ func Run() (err error) {
 func getConfigFromEnv() bx24.RegistrarConfig {
 	return bx24.RegistrarConfig{
 		Http: bx24.Socket{
-			Host: getEnvWithFallback(hsHostKey, hsHostStd),
-			Port: stringToInt(os.Getenv(hsPortKey), hsPortStd),
+			Host: app.GetEnvWithFallback(hsHostKey, hsHostStd),
+			Port: app.StringToInt(os.Getenv(hsPortKey), hsPortStd),
 		},
 		ProducerConfig: bx24.ProducerConfig{
 			Broker: bx24.Socket{
-				Host: getEnvWithFallback(kHostKey, kHostStd),
-				Port: stringToInt(os.Getenv(kPortKey), kPortStd),
+				Host: app.GetEnvWithFallback(kHostKey, kHostStd),
+				Port: app.StringToInt(os.Getenv(kPortKey), kPortStd),
 			},
-			Topic: getEnvWithFallback(kTopicKey, kTopicStd),
+			Topic: app.GetEnvWithFallback(kTopicKey, kTopicStd),
 		},
 	}
 }
 
-func getEnvWithFallback(env string, fallback string) string {
-	val := os.Getenv(env)
-	if len(val) == 0 {
-		return fallback
-	}
-	return val
+func getRouter(accessLog io.Writer,errorLog io.Writer, enableLogBody bool, kw *kafka.Writer ) (*bx24.Router){
+	r := bx24.NewRouter(os.Stdout, os.Stderr, true)
+
+	r.AddMethod(bx24.HttpMethod{
+		Path:       "/client",
+		Handler:    app.DefaultHandler(kw, "client"),
+		CheckInput: app.HandlerCheckInput,
+		AllowMethods: []string{"POST"},
+	})
+
+	r.AddMethod(bx24.HttpMethod{
+		Path:       "/order",
+		Handler:    app.DefaultHandler(kw, "order"),
+		CheckInput: app.HandlerCheckInput,
+		AllowMethods: []string{"POST"},
+	})
+
+	r.AddMethod(bx24.HttpMethod{
+		Path:       "/shipment",
+		Handler:    app.DefaultHandler(kw, "shipment"),
+		CheckInput: app.HandlerCheckInput,
+		AllowMethods: []string{"POST"},
+	})
+
+	r.AddMethod(bx24.HttpMethod{
+		Path:       "/reception",
+		Handler:    app.DefaultHandler(kw, "reception"),
+		CheckInput: app.HandlerCheckInput,
+		AllowMethods: []string{"POST"},
+	})
+
+	return &r
 }
 
-func stringToInt(val string, fallback int) int {
-	if res, err := strconv.Atoi(val); err != nil {
-		return fallback
-	} else {
-		return res
-	}
-}
 
-func getKafkaWriter(kafkaURL string, topic string) *kafka.Writer {
-	return &kafka.Writer{
-		Addr:     kafka.TCP(kafkaURL),
-		Topic:    topic,
-		Balancer: &kafka.LeastBytes{},
-	}
-}
 
-//handler
-func handlerClient(writer *kafka.Writer) func(http.ResponseWriter, *http.Request) error {
-	return func(wrt http.ResponseWriter, req *http.Request) error {
-		body, err := io.ReadAll(req.Body)
-
-		if err != nil {
-			return err
-		}
-		return fmt.Errorf(string(body))
-	}
-}
-
-//checkinput
-func handlerCheckInput(reader io.Reader) (bool, error) {
-	body, err := io.ReadAll(reader)
-
-	if err != nil {
-		return false, err
-	}
-
-	content := strings.ReplaceAll(string(body), "\n", "")
-
-	regStr := `^{"#",+[[:xdigit:]]{8}(-[[:xdigit:]]{4}){3}-[[:xdigit:]]{12},[\d]{1,6}:[[:xdigit:]]{32}}$`
-
-	if matched, err := regexp.MatchString(regStr, content); err != nil {
-		return false, err
-	} else {
-		return matched, nil
-	}
-}

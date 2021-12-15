@@ -10,13 +10,16 @@ import (
 
 type CheckInput func(r io.Reader) (bool, error)
 
+type HandlerFunc func(http.ResponseWriter, *http.Request) error
+
 type Router struct {
 	methods   map[string]*HttpMethod
+	needLogBody bool
 	accessLog *log.Logger
 	errorLog  *log.Logger
 }
 
-func NewRouter(accessLog io.Writer, errorLog io.Writer) (r Router) {
+func NewRouter(accessLog io.Writer, errorLog io.Writer, enableLoggingBody bool) (r Router) {
 	r.methods = make(map[string]*HttpMethod)
 
 	r.accessLog = log.New()
@@ -33,6 +36,8 @@ func NewRouter(accessLog io.Writer, errorLog io.Writer) (r Router) {
 		FullTimestamp: true,
 	})
 
+	r.needLogBody = enableLoggingBody
+
 	return r
 }
 
@@ -46,6 +51,10 @@ func (r Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	logger := writerLogger{ResponseWriter: w, status: 200}
 
 	if method, ok := r.methods[url.Path]; ok {
+
+		if r.needLogBody {
+			r.addLogBody(req)
+		}
 
 		if !r.checkInputEvent(method, &logger, req) {
 			return
@@ -68,6 +77,32 @@ func (r Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	r.addStateRequest(logger.Status(), url.Path, req.RemoteAddr)
+}
+
+func (r *Router) addLogBody(req *http.Request) {
+
+	if r.needLogBody {
+		var buf bytes.Buffer
+		tee := io.TeeReader(req.Body, &buf)
+
+		if body,err := io.ReadAll(tee); err == nil {
+			r.addLogInfo(log.Fields{
+				"method": req.URL.Path,
+				"type" : req.Method,
+				"content" : string(body),
+			}, "Body")
+		} else {
+			r.addLogError(log.Fields{
+				"method": req.URL.Path,
+				"type": req.Method,
+				"point": "addLogBody",
+				"error": err,
+			},"Adding requests body to log")
+		}
+
+		req.Body = io.NopCloser(bytes.NewReader(buf.Bytes()))
+
+	}
 }
 
 func (r *Router) checkInputEvent(method *HttpMethod, w http.ResponseWriter, req *http.Request) (bool) {
@@ -125,7 +160,7 @@ func (r *Router) addLogWarn(fields log.Fields, msg interface{}) {
 
 type HttpMethod struct {
 	Path    string
-	Handler func(http.ResponseWriter, *http.Request) error
+	Handler HandlerFunc
 	CheckInput
 	AllowMethods []string
 }
@@ -141,7 +176,6 @@ func (m *HttpMethod) isAllow(typeMethod string) bool {
 	return res
 }
 
-//read data and save thet into new reader for reader have data in method's handler
 func (m *HttpMethod) checkInput(r io.Reader) (bool, error) {
 	return m.CheckInput(r)
 }
