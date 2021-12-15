@@ -7,38 +7,49 @@ type Socket struct {
 	Port int    `json:"port"`
 }
 
-type GeneratorConfig struct {
-	DB              DataBaseAuth `json:"db"`
-	Web             Socket       `json:"web"`
-	StorageQueryTxt string       `json:"queryDir"`
-}
-
-type Auth struct {
-	User     string `json:"user"`
-	Password string `json:"password"`
-}
-
-type DataBaseAuth struct {
-	Socket   `json:"socket"`
-	Auth     `json:"auth"`
-	Database string `json:"database"`
-}
-
-type RegistrarConfig struct {
-	ProducerConfig
-	Endpoint
-}
-
-type ProducerConfig struct {
-	Broker     Socket `json:"broker"`
-	Topic      string `json:"topic"`
-	Partition  int    `json:"partition"`
-	MessageKey string `json:"messageKey"`
+func (s Socket) String() string {
+	return fmt.Sprintf("%s:%d", s.Host, s.Port)
 }
 
 type Endpoint struct {
 	Socket
 	Method string
+}
+
+func (e Endpoint) URL(ssl bool) string {
+	protocol := "http"
+	if ssl {
+		protocol = "https"
+	}
+
+	return fmt.Sprintf("%s://%s/%s", protocol, e.Socket.String(), e.Method)
+}
+
+type BasicAuth struct {
+	User     string `json:"user"`
+	Password string `json:"password"`
+}
+
+type RegistrarConfig struct {
+	Http Socket
+	ProducerConfig
+}
+
+type GeneratorConfig struct {
+	DB              DataBaseConnection `json:"db"`
+	Web             Socket             `json:"web"`
+	StorageQueryTxt string             `json:"queryDir"`
+}
+
+type DataBaseConnection struct {
+	Socket    `json:"socket"`
+	BasicAuth `json:"auth"`
+	Database  string `json:"database"`
+}
+
+type ProducerConfig struct {
+	Broker     Socket `json:"broker"`
+	Topic      string `json:"topic"`
 }
 
 type ConsumerConfig struct {
@@ -48,6 +59,3 @@ type ConsumerConfig struct {
 	TargetLink string `json:"target"`
 }
 
-func (s Socket) String() string {
-	return fmt.Sprintf("%s:%d", s.Host, s.Port)
-}

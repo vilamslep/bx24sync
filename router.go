@@ -8,14 +8,30 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type CheckInput func(r io.Reader) bool
+type CheckInput func(r io.Reader) (bool, error)
 
 type Router struct {
-	methods map[string]*HttpMethod
+	methods   map[string]*HttpMethod
+	accessLog *log.Logger
+	errorLog  *log.Logger
 }
 
-func NewRouter() (r Router) {
+func NewRouter(accessLog io.Writer, errorLog io.Writer) (r Router) {
 	r.methods = make(map[string]*HttpMethod)
+
+	r.accessLog = log.New()
+	r.accessLog.Out = accessLog
+	r.accessLog.SetFormatter(&log.TextFormatter{
+		ForceColors:   true,
+		FullTimestamp: true,
+	})
+
+	r.errorLog = log.New()
+	r.errorLog.Out = errorLog
+	r.errorLog.SetFormatter(&log.TextFormatter{
+		ForceColors:   true,
+		FullTimestamp: true,
+	})
 
 	return r
 }
@@ -36,38 +52,80 @@ func (r Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 
 		if len(method.AllowMethods) == 0 || method.isAllow(req.Method) {
-			method.Handler(&logger, req)
+			if err := method.Handler(&logger, req); err != nil {
+				r.addLogError(log.Fields{
+					"method": method.Path,
+					"point":  "ServeHTTP",
+					"error":  err,
+				}, "method handler fail")
+			}
 		} else {
 			logger.WriteHeader(http.StatusMethodNotAllowed)
 		}
+
 	} else {
 		http.NotFound(&logger, req)
 	}
 
-	log.WithFields(log.Fields{
-		"Status":     logger.Status(),
-		"Path":       url.Path,
-		"RemoteAddr": req.RemoteAddr,
-	}).Info("Access")
+	r.addStateRequest(logger.Status(), url.Path, req.RemoteAddr)
 }
 
-func (r *Router) checkInputEvent(method *HttpMethod, w http.ResponseWriter, req *http.Request) (ok bool) {
-
-	ok = true
+func (r *Router) checkInputEvent(method *HttpMethod, w http.ResponseWriter, req *http.Request) (bool) {
 	if method.CheckInput != nil {
-		if ok, req.Body = method.checkInput(req.Body); !ok {
+		var buf bytes.Buffer
+		tee := io.TeeReader(req.Body, &buf)
+
+		if ok, err := method.checkInput(tee); err != nil {
+
+			r.addLogError(log.Fields{
+				"method": method.Path,
+				"point":  "checkInputEvent",
+				"error":  err,
+			}, "checking input fails")
+
+			w.WriteHeader(http.StatusInternalServerError)
+
+			return false
+		} else if !ok {
 			w.WriteHeader(http.StatusBadGateway)
 			w.Write([]byte("Body isn't correctly"))
-			return
+
+			return false
+		} else {
+			req.Body = io.NopCloser(bytes.NewReader(buf.Bytes()))
 		}
 	}
+	return true
+}
 
-	return ok
+func (r *Router) addStateRequest(status int, urlPath string, addr string) {
+
+	fields := log.Fields{"path": urlPath, "addr": addr}
+
+	if status == 200 {
+		r.addLogInfo(fields, status)
+	} else if status > 400 && status < 500 {
+		r.addLogWarn(fields, status)
+	} else if status > 500 {
+		r.addLogError(fields, status)
+	}
+}
+
+func (r *Router) addLogInfo(fields log.Fields, msg interface{}) {
+	r.accessLog.WithFields(fields).Info(msg)
+}
+
+func (r *Router) addLogError(fields log.Fields, msg interface{}) {
+	r.errorLog.WithFields(fields).Error(msg)
+}
+
+func (r *Router) addLogWarn(fields log.Fields, msg interface{}) {
+	r.errorLog.WithFields(fields).Warn(msg)
 }
 
 type HttpMethod struct {
 	Path    string
-	Handler http.HandlerFunc
+	Handler func(http.ResponseWriter, *http.Request) error
 	CheckInput
 	AllowMethods []string
 }
@@ -84,23 +142,8 @@ func (m *HttpMethod) isAllow(typeMethod string) bool {
 }
 
 //read data and save thet into new reader for reader have data in method's handler
-func (m *HttpMethod) checkInput(r io.Reader) (res bool, reader io.ReadCloser) {
-
-	res = m.CheckInput == nil
-
-	var buf bytes.Buffer
-
-	tee := io.TeeReader(r, &buf)
-
-	if m.CheckInput != nil {
-		res = m.CheckInput(tee)
-	} else {
-		io.ReadAll(tee)
-	}
-
-	reader = io.NopCloser(bytes.NewReader(buf.Bytes()))
-
-	return res, reader
+func (m *HttpMethod) checkInput(r io.Reader) (bool, error) {
+	return m.CheckInput(r)
 }
 
 type writerLogger struct {
@@ -116,4 +159,3 @@ func (l *writerLogger) WriteHeader(code int) {
 func (l *writerLogger) Status() int {
 	return l.status
 }
-

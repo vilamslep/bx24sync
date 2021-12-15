@@ -243,7 +243,7 @@ func (s *Service) Close() {
 	log.Info("Server Exited Properly")
 }
 
-func makeConnURL(config DataBaseAuth) *url.URL {
+func makeConnURL(config DataBaseConnection) *url.URL {
 
 	return &url.URL{
 		Scheme: "sqlserver",
