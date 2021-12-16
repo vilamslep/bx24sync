@@ -22,3 +22,11 @@ func StringToInt(val string, fallback int) int {
 	}
 }
 
+func StringToBool(val string, fallback bool) bool {
+	if val == "" {
+		return fallback
+	}
+
+	return val == "1" || val == "true"
+}
+

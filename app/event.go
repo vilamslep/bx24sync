@@ -7,8 +7,8 @@ import(
 	"regexp"
 )
 
-//checkinput
-func HandlerCheckInput(reader io.Reader) (bool, error) {
+//body would be like {"#",8f8a65b4-94c4-4794-b3e2-800d18d503ca,151:80d60cc47a5468a511e5f0049748a86c}
+func DefaultCheckInput(reader io.Reader) (bool, error) {
 	body, err := io.ReadAll(reader)
 
 	if err != nil {

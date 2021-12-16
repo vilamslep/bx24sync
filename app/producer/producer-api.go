@@ -1,13 +1,12 @@
 package changes
 
 import (
-	"io"
+	"context"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-	"context"
 	"time"
 
 	"github.com/segmentio/kafka-go"
@@ -16,11 +15,12 @@ import (
 )
 
 const (
-	kHostKey  = "KAFKA_HOST"
-	kPortKey  = "KAFKA_PORT"
-	kTopicKey = "KAFKA_TOPIC"
-	hsHostKey = "HTTP_HOST"
-	hsPortKey = "HTTP_PORT"
+	kHostKey        = "KAFKA_HOST"
+	kPortKey        = "KAFKA_PORT"
+	kTopicKey       = "KAFKA_TOPIC"
+	hsHostKey       = "HTTP_HOST"
+	hsPortKey       = "HTTP_PORT"
+	hsAddCheckInput = "HTTP_ADD_CHECK_INPUT"
 
 	kHostStd  = "kafka"
 	kPortStd  = 9092
@@ -30,12 +30,16 @@ const (
 )
 
 func Run() (err error) {
-	
+
 	config := getConfigFromEnv()
-	
+
 	writer := app.GetKafkaWriter(config.Broker.String(), config.Topic)
 
-	router := getRouter(os.Stdin, os.Stderr, true, writer)
+	router := bx24.NewRouter(os.Stdout, os.Stderr, true)
+
+	enCheckInput := app.StringToBool(os.Getenv(hsAddCheckInput), false)
+
+	settingRouter(router, enCheckInput, writer)
 
 	server := &http.Server{
 		Addr:    config.Http.String(),
@@ -54,7 +58,6 @@ func Run() (err error) {
 
 	//wait signal
 	<-done
-
 
 	//free up resources
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -90,39 +93,33 @@ func getConfigFromEnv() bx24.RegistrarConfig {
 	}
 }
 
-func getRouter(accessLog io.Writer,errorLog io.Writer, enableLogBody bool, kw *kafka.Writer ) (*bx24.Router){
-	r := bx24.NewRouter(os.Stdout, os.Stderr, true)
+func settingRouter(r bx24.Router, enableCheckInput bool, kw *kafka.Writer) {
 
-	r.AddMethod(bx24.HttpMethod{
-		Path:       "/client",
-		Handler:    app.DefaultHandler(kw, "client"),
-		CheckInput: app.HandlerCheckInput,
-		AllowMethods: []string{"POST"},
-	})
+	var checkInputFunc bx24.CheckInput = nil
 
-	r.AddMethod(bx24.HttpMethod{
-		Path:       "/order",
-		Handler:    app.DefaultHandler(kw, "order"),
-		CheckInput: app.HandlerCheckInput,
-		AllowMethods: []string{"POST"},
-	})
+	if enableCheckInput {
+		checkInputFunc = app.DefaultCheckInput
+	}
 
-	r.AddMethod(bx24.HttpMethod{
-		Path:       "/shipment",
-		Handler:    app.DefaultHandler(kw, "shipment"),
-		CheckInput: app.HandlerCheckInput,
-		AllowMethods: []string{"POST"},
-	})
+	allowsMethods := []string{"POST"}
 
-	r.AddMethod(bx24.HttpMethod{
-		Path:       "/reception",
-		Handler:    app.DefaultHandler(kw, "reception"),
-		CheckInput: app.HandlerCheckInput,
-		AllowMethods: []string{"POST"},
-	})
+	r.AddMethod(
+		bx24.NewHttpMethod(
+			"/client", app.DefaultHandler(kw, "client"),
+			checkInputFunc, allowsMethods))
 
-	return &r
+	r.AddMethod(
+		bx24.NewHttpMethod(
+			"/order", app.DefaultHandler(kw, "client"),
+			checkInputFunc, allowsMethods))
+
+	r.AddMethod(
+		bx24.NewHttpMethod(
+			"/shipment", app.DefaultHandler(kw, "client"),
+			checkInputFunc, allowsMethods))
+
+	r.AddMethod(
+		bx24.NewHttpMethod(
+			"/reseption", app.DefaultHandler(kw, "client"),
+			checkInputFunc, allowsMethods))
 }
-
-
-

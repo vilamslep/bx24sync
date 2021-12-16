@@ -180,6 +180,17 @@ func (m *HttpMethod) checkInput(r io.Reader) (bool, error) {
 	return m.CheckInput(r)
 }
 
+func NewHttpMethod(path string, handler HandlerFunc, checkInput CheckInput, allowsMethods []string) HttpMethod {
+	
+	return HttpMethod{
+		Path: path,
+		Handler: handler,
+		CheckInput: checkInput,
+		AllowMethods: allowsMethods,
+	}
+
+}
+
 type writerLogger struct {
 	http.ResponseWriter
 	status int
