@@ -12,3 +12,7 @@ func GetKafkaWriter(kafkaURL string, topic string) *kafka.Writer {
 		Balancer: &kafka.LeastBytes{},
 	}
 }
+
+func GetKafkaReader(){
+	
+}

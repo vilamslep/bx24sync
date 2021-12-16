@@ -1,6 +1,5 @@
 *app.go
 *.json
-example
 *.log
 *.exe
 *.txt
