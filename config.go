@@ -44,7 +44,6 @@ type GeneratorConfig struct {
 type DataBaseConnection struct {
 	Socket    `json:"socket"`
 	BasicAuth `json:"auth"`
-	Database  string `json:"database"`
 }
 
 type ProducerConfig struct {
