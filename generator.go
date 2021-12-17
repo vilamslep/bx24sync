@@ -210,7 +210,7 @@ func transformToSctruct(data []map[string]string) (bitrix24.Contact, error) {
 	contact := bitrix24.Contact{}
 
 	for _, value := range data {
-		contact.TransoftFromMap(value)
+		contact.LoadFromMap(value)
 
 		return contact, nil
 	}
