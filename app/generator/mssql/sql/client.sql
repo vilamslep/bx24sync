@@ -290,7 +290,7 @@ SELECT
 	_client.isRetireeOrDisabledPerson,
 	_client.connectionway as connectionWay,
 	_client.ThereIsContract AS thereIsContract,
-	_client.SendAds AS sendAdds,
+	_client.SendAds AS sendAds,
 	_document.isInternetClient,
 	_document.isOfflineClient,
 	_document.isClinicClient,
@@ -309,8 +309,8 @@ SELECT
 		THEN @raybanDiscontValue
 		ELSE 0
 	END AS discountRayban,
-	@phonesummary AS Phone,
-	@email AS Email
+	@phonesummary AS phone,
+	@email AS email
 FROM
 	#clients AS _client WITH(NOLOCK)
 	LEFT OUTER JOIN #theFirstDocument AS _document WITH(NOLOCK)
