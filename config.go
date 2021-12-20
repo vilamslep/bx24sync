@@ -55,7 +55,7 @@ func NewRegistrarConfigFromEnv() RegistrarConfig {
 	return RegistrarConfig{
 		Http: Socket{
 			Host: GetEnvAsString("HTTP_HOST", "127.0.0.1"),
-			Port: GetEnvAsInt("HTTP_PORT", 9092),
+			Port: GetEnvAsInt("HTTP_PORT", 25410),
 		},
 		ProducerConfig: ProducerConfig{
 			Broker: Socket{

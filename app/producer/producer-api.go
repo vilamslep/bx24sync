@@ -1,4 +1,4 @@
-package changes
+package producer
 
 import (
 	"context"
