@@ -1,5 +1,8 @@
 package bitrix24
 
 type Entity interface {
-	Json() ([]byte, error)
+	Add() (BitrixRestResponse, error)
+	// Get() (BitrixRestResponse, error)
+	Find() (BitrixRestResponse, error)
+	Update() (BitrixRestResponse, error)
 }

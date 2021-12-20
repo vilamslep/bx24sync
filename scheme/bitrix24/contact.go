@@ -48,6 +48,23 @@ func (s *Contact) transforName(val string) {
 	}
 }
 
+func (c Contact) Json() ([]byte, error) {
+	return json.Marshal(c)
+}
+
+func NewContactFromJson(raw []byte) (contact Contact,err error) {
+	err = json.Unmarshal(raw, &contact)
+	return contact, err
+}
+
+func (c Contact) Find() (response BitrixRestResponse, err error){ return response, err }
+
+func (c Contact) Add() (response BitrixRestResponse, err error){ return response, err }
+
+// func (c Contact) Get() (response BitrixRestResponse, err error){ return response, err }
+
+func (c Contact) Update() (response BitrixRestResponse, err error){ return response, err }
+
 func removeNumbers(val string) (res string) {
 
 	for _, ch := range val {
@@ -58,9 +75,6 @@ func removeNumbers(val string) (res string) {
 	return res
 }
 
-func (c Contact) Json() ([]byte, error) {
-	return json.Marshal(c)
-}
 
 func GetContactsFromRaw(reader io.Reader) (data [][]byte, err error) {
 	content, err := io.ReadAll(reader)
@@ -84,16 +98,15 @@ func GetContactsFromRaw(reader io.Reader) (data [][]byte, err error) {
 			return data, err
 		}
 
-		if result, err := NewContactFromClient(client).Json(); err != nil {
+		if result, err := newContactFromClient(client).Json(); err != nil {
 			data = append(data, result)
 		}
 	}
 
 	return data, err
-
 }
 
-func NewContactFromClient(client sql.Client) Contact {
+func newContactFromClient(client sql.Client) Contact {
 
 	c := Contact{}
 

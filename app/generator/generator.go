@@ -12,35 +12,18 @@ import (
 	"github.com/vi-la-muerto/bx24sync/app/generator/mssql"
 )
 
-const (
-	dbHostKey       = "DB_HOST"
-	dbPortKey       = "DB_PORT"
-	dbUserKey       = "DB_USER"
-	dbPasswordKey   = "DB_PASSWORD"
-	hsHostKey       = "HTTP_HOST"
-	hsPortKey       = "HTTP_PORT"
-	hsAddCheckInput = "HTTP_ADD_CHECK_INPUT"
-
-	dbHostStd = "localhost"
-	dbPortStd = 1433
-	hsHostStd = "localhost"
-	hsPortStd = 8095
-)
-
 func Run() (err error) {
 
-	config := getConfigFromEnv()
+	config := bx24.NewGeneratorConfigFromEnv()
 
 	router := bx24.NewRouter(os.Stdout, os.Stderr, true)
-
-	enCheckInput := app.StringToBool(os.Getenv(hsAddCheckInput), false)
 
 	db, err := mssql.GetDatabaseConnection(config.DB)
 
 	if err != nil {
 		return err
 	}
-	settingRouter(router, enCheckInput, db, config.StorageQueryTxt)
+	settingRouter(router, config.CheckInput, db, config.StorageQueryTxt)
 
 	server := &http.Server{
 		Addr:    config.Web.String(),
@@ -52,26 +35,6 @@ func Run() (err error) {
 	}
 
 	return err
-}
-
-func getConfigFromEnv() bx24.GeneratorConfig {
-	return bx24.GeneratorConfig{
-		DB: bx24.DataBaseConnection{
-			Socket: bx24.Socket{
-				Host: app.GetEnvWithFallback(dbHostKey, hsHostStd),
-				Port: app.StringToInt(os.Getenv(dbPortKey), dbPortStd),
-			},
-			BasicAuth: bx24.BasicAuth{
-				User:     app.GetEnvWithFallback(dbUserKey, ""),
-				Password: app.GetEnvWithFallback(dbPasswordKey, ""),
-			},
-		},
-		Web: bx24.Socket{
-			Host: app.GetEnvWithFallback(hsHostKey, hsHostStd),
-			Port: app.StringToInt(os.Getenv(hsPortKey), hsPortStd),
-		},
-		StorageQueryTxt: "./sql",
-	}
 }
 
 func settingRouter(r bx24.Router, enableCheckInput bool, db *sql.DB, queryTextsDir string) (err error) {

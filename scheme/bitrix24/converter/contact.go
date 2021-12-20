@@ -15,7 +15,6 @@ const (
 	Phone ConnectionWay = 516
 )
 
-
 func (s String) GenderCode() Gender {
 
 	result := Gender(0)

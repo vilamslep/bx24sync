@@ -2,7 +2,6 @@ package mssql
 
 import (
 	"database/sql"
-	"net/url"
 	"time"
 
 	mssql "github.com/denisenkom/go-mssqldb"
@@ -10,7 +9,7 @@ import (
 )
 
 func GetDatabaseConnection(config bx24sync.DataBaseConnection) (db *sql.DB, err error) {
-	connector, err := mssql.NewConnector(makeConnURL(config).String())
+	connector, err := mssql.NewConnector( config.MakeConnURL().String() )
 
 	if err != nil {
 		return db, err
@@ -24,10 +23,4 @@ func GetDatabaseConnection(config bx24sync.DataBaseConnection) (db *sql.DB, err 
 	return db, err
 }
 
-func makeConnURL(config bx24sync.DataBaseConnection) *url.URL {
-	return &url.URL{
-		Scheme: "sqlserver",
-		Host:   config.Socket.String(),
-		User:   url.UserPassword(config.User, config.Password),
-	}
-}
+

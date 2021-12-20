@@ -2,6 +2,7 @@ package changes
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -13,32 +14,19 @@ import (
 	"github.com/vi-la-muerto/bx24sync/app"
 )
 
-const (
-	kHostKey        = "KAFKA_HOST"
-	kPortKey        = "KAFKA_PORT"
-	kTopicKey       = "KAFKA_TOPIC"
-	hsHostKey       = "HTTP_HOST"
-	hsPortKey       = "HTTP_PORT"
-	hsAddCheckInput = "HTTP_ADD_CHECK_INPUT"
-
-	kHostStd  = "kafka"
-	kPortStd  = 9092
-	kTopicStd = "changes"
-	hsHostStd = "localhost"
-	hsPortStd = 8082
-)
-
 func Run() (err error) {
 
-	config := getConfigFromEnv()
+	config := bx24.NewRegistrarConfigFromEnv()
 
-	writer := app.NewKafkaWriter(config.Broker.String(), config.Topic)
+	if config.Topic == "" {
+		return fmt.Errorf("not defined kafka topic. ")
+	}
+
+	writer := bx24.NewKafkaWriter(config.Broker.String(), config.Topic)
 
 	router := bx24.NewRouter(os.Stdout, os.Stderr, true)
 
-	enCheckInput := app.StringToBool(os.Getenv(hsAddCheckInput), false)
-
-	settingRouter(router, enCheckInput, writer)
+	settingRouter(router, config.CheckInput, writer)
 
 	server := &http.Server{
 		Addr:    config.Http.String(),
@@ -49,9 +37,8 @@ func Run() (err error) {
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
-		log.Println("Start server")
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Can't start to listener: %s\n", err)
+			log.Fatalf("can't start to listener: %s\n", err)
 		}
 	}()
 
@@ -68,31 +55,12 @@ func Run() (err error) {
 	}()
 
 	if err := server.Shutdown(ctx); err != nil {
-		log.Fatalf("server shutdown failed:%+v\n", err)
+		return fmt.Errorf("server shutdown failed:%+v", err)
 	}
-
-	log.Println("server exited properly")
-
 	return err
 }
 
-func getConfigFromEnv() bx24.RegistrarConfig {
-	return bx24.RegistrarConfig{
-		Http: bx24.Socket{
-			Host: app.GetEnvWithFallback(hsHostKey, hsHostStd),
-			Port: app.StringToInt(os.Getenv(hsPortKey), hsPortStd),
-		},
-		ProducerConfig: bx24.ProducerConfig{
-			Broker: bx24.Socket{
-				Host: app.GetEnvWithFallback(kHostKey, kHostStd),
-				Port: app.StringToInt(os.Getenv(kPortKey), kPortStd),
-			},
-			Topic: app.GetEnvWithFallback(kTopicKey, kTopicStd),
-		},
-	}
-}
-
-func settingRouter(r bx24.Router, enableCheckInput bool, kw *app.KafkaWriter) {
+func settingRouter(r bx24.Router, enableCheckInput bool, kw *bx24.KafkaWriter) {
 
 	var checkInputFunc bx24.CheckInput = nil
 

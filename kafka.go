@@ -1,10 +1,9 @@
-package app
+package bx24sync
 
 //wrapper for github.com/segmentio/kafka-go
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/segmentio/kafka-go"
 )
@@ -44,13 +43,13 @@ func (m Message) convertToKafkaMessage() kafka.Message {
 type KafkaScanner struct {
 	reader *kafka.Reader
 	ctx    context.Context
-	msg Message
-	err error
+	msg    Message
+	err    error
 }
 
-func NewKafkaScanner() KafkaScanner {
+func NewKafkaScanner(config ConsumerConfig) KafkaScanner {
 	return KafkaScanner{
-		reader: getKafkaReader(),
+		reader: getKafkaReader(config),
 		ctx:    context.Background(),
 	}
 }
@@ -77,6 +76,22 @@ func (r *KafkaScanner) Err() error {
 	return r.err
 }
 
+func getKafkaReader(config ConsumerConfig) *kafka.Reader {
+
+	brokers := make([]string, len(config.Brokers))
+
+	for i, v := range config.Brokers {
+		brokers[i] = v.String()
+	}
+
+	return kafka.NewReader(kafka.ReaderConfig{
+		Brokers:   brokers,
+		GroupID:   config.GroupId,
+		Partition: config.Partition,
+		Topic:     config.Topic,
+	})
+}
+
 type KafkaWriter struct {
 	writer *kafka.Writer
 }
@@ -101,15 +116,4 @@ func getKafkaWriter(kafkaURL string, topic string) *kafka.Writer {
 		Topic:    topic,
 		Balancer: &kafka.LeastBytes{},
 	}
-}
-
-func getKafkaReader() *kafka.Reader {
-	brokers := strings.Split("172.19.0.3:9092", ",")
-	config := kafka.ReaderConfig{
-		Brokers: brokers,
-		GroupID: "preparing",
-		Topic:   "changes",
-	}
-
-	return kafka.NewReader(config)
 }
