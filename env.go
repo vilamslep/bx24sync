@@ -41,6 +41,8 @@ func load(f *os.File) (err error) {
 			key = envData[0]
 		}
 
+		if key == "" { continue }
+
 		if len(envData) > 1 {
 			value = envData[1]
 		}

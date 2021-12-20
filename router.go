@@ -50,7 +50,7 @@ func (r Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	url := *req.URL
 	logger := writerLogger{ResponseWriter: w, status: 200}
 
-	if method, ok := r.methods[url.Path]; ok {
+	if method, ok := r.methods[url.Path]; ok && method.isAllow(req.Method) {
 
 		if r.needLogBody {
 			r.addLogBody(req)
@@ -60,7 +60,7 @@ func (r Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		if len(method.AllowMethods) == 0 || method.isAllow(req.Method) {
+		if len(method.AllowMethods) != 0  {
 			if err := method.Handler(&logger, req); err != nil {
 				r.addLogError(log.Fields{
 					"method": method.Path,
