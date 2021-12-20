@@ -54,7 +54,6 @@ type RegistrarConfig struct {
 func NewRegistrarConfigFromEnv() RegistrarConfig {
 	return RegistrarConfig{
 		Http: Socket{
-			Host: GetEnvAsString("HTTP_HOST", "127.0.0.1"),
 			Port: GetEnvAsInt("HTTP_PORT", 25410),
 		},
 		ProducerConfig: ProducerConfig{
@@ -88,7 +87,6 @@ func NewGeneratorConfigFromEnv() GeneratorConfig {
 			},
 		},
 		Web: Socket{
-			Host: GetEnvAsString("HTTP_HOST", "127.0.0.1"),
 			Port: GetEnvAsInt("HTTP_PORT", 8080),
 		},
 		StorageQueryTxt: "./sql",
@@ -153,7 +151,7 @@ func NewConsumerConfigFromEnv() (ConsumerConfig, error) {
 		c.Partition = GetEnvAsInt("KAFKA_PARTITION", 0)
 
 		c.GeneratorEndpoint = Endpoint{
-			Socket: Socket {
+			Socket: Socket{
 				Host: GetEnvAsString("GENERATOR_HOST", ""),
 				Port: GetEnvAsInt("GENERATOR_PORT", 0),
 			},
@@ -161,7 +159,7 @@ func NewConsumerConfigFromEnv() (ConsumerConfig, error) {
 		}
 
 		c.TargetEndpoint = Endpoint{
-			Socket: Socket {
+			Socket: Socket{
 				Host: GetEnvAsString("TARGET_HOST", ""),
 				Port: GetEnvAsInt("TARGET_PORT", 0),
 			},
