@@ -77,16 +77,16 @@ func settingRouter(r bx24.Router, enableCheckInput bool, kw *bx24.KafkaWriter) {
 
 	r.AddMethod(
 		bx24.NewHttpMethod(
-			"/order", app.DefaultHandler(kw, "client"),
+			"/order", app.DefaultHandler(kw, "order"),
 			checkInputFunc, allowsMethods))
 
 	r.AddMethod(
 		bx24.NewHttpMethod(
-			"/shipment", app.DefaultHandler(kw, "client"),
+			"/shipment", app.DefaultHandler(kw, "shipment"),
 			checkInputFunc, allowsMethods))
 
 	r.AddMethod(
 		bx24.NewHttpMethod(
-			"/reseption", app.DefaultHandler(kw, "client"),
+			"/reception", app.DefaultHandler(kw, "reception"),
 			checkInputFunc, allowsMethods))
 }
