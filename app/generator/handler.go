@@ -1,10 +1,12 @@
 package generator
 
 import (
+	"bufio"
 	"database/sql"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strings"
 
 	bx24 "github.com/vi-la-muerto/bx24sync"
@@ -25,7 +27,13 @@ func HandlerWithDatabaseConnection(executeQuery executeDBQuery) bx24.HandlerFunc
 
 		if data, err := executeQuery(map[string]string{"${client}": id}); err == nil {
 
-			scheme, err := schemes.CreateClientScheme(strings.NewReader("clientScheme.json"))
+			rd, err := os.OpenFile("clientScheme.json", os.O_RDONLY, 0666)
+
+			if err != nil {
+				return writeServerError(w, err)
+			}
+
+			scheme, err := schemes.CreateClientScheme(bufio.NewReader(rd))
 
 			if err != nil {
 				return writeServerError(w, err)

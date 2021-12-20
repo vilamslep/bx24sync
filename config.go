@@ -76,27 +76,31 @@ type GeneratorConfig struct {
 
 func NewGeneratorConfigFromEnv() GeneratorConfig {
 	return GeneratorConfig{
-		DB: DataBaseConnection{
-			Socket: Socket{
-				Host: GetEnvAsString("DB_HOST", "127.0.0.1"),
-				Port: GetEnvAsInt("DB_PORT", 1433),
-			},
-			BasicAuth: BasicAuth{
-				User:     GetEnvAsString("DB_USER", ""),
-				Password: GetEnvAsString("DB_PASSWORD", ""),
-			},
-		},
+		DB: NewDataBaseConnectionFromEnv(),
 		Web: Socket{
 			Port: GetEnvAsInt("HTTP_PORT", 8080),
 		},
 		StorageQueryTxt: "./sql",
-		CheckInput:      GetEnvAsBool("HTTP_CHECK_INPUT", false),
+		CheckInput:      GetEnvAsBool("HTTP_CHECK_INPUT", true),
 	}
 }
 
 type DataBaseConnection struct {
 	Socket    `json:"socket"`
 	BasicAuth `json:"auth"`
+}
+
+func NewDataBaseConnectionFromEnv() DataBaseConnection {
+	return DataBaseConnection{
+		Socket: Socket{
+			Host: GetEnvAsString("DB_HOST", "127.0.0.1"),
+			Port: GetEnvAsInt("DB_PORT", 1433),
+		},
+		BasicAuth: BasicAuth{
+			User:     GetEnvAsString("DB_USER", ""),
+			Password: GetEnvAsString("DB_PASSWORD", ""),
+		},
+	}
 }
 
 func (c DataBaseConnection) MakeConnURL() *url.URL {
