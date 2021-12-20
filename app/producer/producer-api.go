@@ -9,7 +9,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/segmentio/kafka-go"
 	bx24 "github.com/vi-la-muerto/bx24sync"
 	"github.com/vi-la-muerto/bx24sync/app"
 )
@@ -33,7 +32,7 @@ func Run() (err error) {
 
 	config := getConfigFromEnv()
 
-	writer := app.GetKafkaWriter(config.Broker.String(), config.Topic)
+	writer := app.NewKafkaWriter(config.Broker.String(), config.Topic)
 
 	router := bx24.NewRouter(os.Stdout, os.Stderr, true)
 
@@ -93,7 +92,7 @@ func getConfigFromEnv() bx24.RegistrarConfig {
 	}
 }
 
-func settingRouter(r bx24.Router, enableCheckInput bool, kw *kafka.Writer) {
+func settingRouter(r bx24.Router, enableCheckInput bool, kw *app.KafkaWriter) {
 
 	var checkInputFunc bx24.CheckInput = nil
 

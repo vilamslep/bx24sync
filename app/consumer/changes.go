@@ -2,59 +2,63 @@ package consumer
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/vi-la-muerto/bx24sync/app"
-	bx24 "github.com/vi-la-muerto/bx24sync/bitrix24"
+	bx24 "github.com/vi-la-muerto/bx24sync/scheme/bitrix24"
 )
 
-func Run()  {
+type gettingData func(io.Reader) ([][]byte, error)
+
+func RunPreparing() {
 
 	if err := runScanner(); err != nil {
 		log.Fatalln(err)
 	}
-
-
-
 }
 
 func runScanner() error {
 	scanner := app.NewKafkaScanner()
 
 	for scanner.Scan() {
-		msg := scanner.Message
-		go sendMessageToGenerator(msg)
+		msg := scanner.Message()
+		sendMessageToGenerator(msg)
 	}
-	return scanner.GetError()
+	return scanner.Err()
 }
+
 //TODO need to make up where save errors
 func commitError(msg app.Message, err error) {
 	content := fmt.Sprintf("%s; Error: %s", msg.String(), err.Error())
-	if ioutil.WriteFile("errors.txt", []byte(content), os.ModeAppend); err != nil {
+	if os.WriteFile("errors.txt", []byte(content), os.ModeAppend); err != nil {
 		log.Println(err)
 	}
 }
 
 func sendMessageToGenerator(msg app.Message) {
-	var entity bx24.Entity
+
+	var creating gettingData
 	var url string
-	switch string(msg.Key) {
-	case  "client":
-		url = fmt.Sprintf("%s/%s", "http://192.168.2.238:8095", msg.Key)
-		entity = bx24.Contact{}
+
+	key := string(msg.Key)
+
+	switch key {
+	case "client":
+		url = "http://localhost/client"
+
+		creating = bx24.GetContactsFromRaw
+
 	default:
 		err := fmt.Errorf("not define method for key '%s'", string(msg.Key))
 		commitError(msg, err)
 		return
 	}
-	
+
 	reader := bytes.NewReader(msg.Value)
 
 	req, err := http.NewRequest("POST", url, reader)
@@ -64,11 +68,13 @@ func sendMessageToGenerator(msg app.Message) {
 		return
 	}
 
-	client := http.Client{ Timeout: time.Second * 300}
+	client := http.Client{Timeout: time.Second * 300}
 
 	if response, err := client.Do(req); err == nil || response.StatusCode != http.StatusOK {
 
-		if err := commitNewMessage(response.Body, entity); err != nil {
+		defer response.Body.Close()
+
+		if err := commitNewMessage(response.Body, creating, key); err != nil {
 			commitError(msg, err)
 		}
 	} else {
@@ -76,39 +82,52 @@ func sendMessageToGenerator(msg app.Message) {
 	}
 }
 
-func commitNewMessage(r io.Reader, entity bx24.Entity) (err error) {
+func commitNewMessage(r io.Reader, creating gettingData, key string) (err error) {
 
-	data, err := convertDataForCrm(r, entity)
+	data, err := convertDataForCrm(r, creating)
 
 	if err != nil {
 		return fmt.Errorf("converting for crm failed: %s", err.Error())
 	}
 
-	if err := sendMessageToRegistrar(data); err != nil {
+	if err := sendMessageToRegistrar(data, key); err != nil {
 		return fmt.Errorf("sending message to crm bus failed: %s", err.Error())
 	}
-	
+
 	return nil
 }
 
-func convertDataForCrm(r io.Reader, entity bx24.Entity) (data []byte, err error) {
+func convertDataForCrm(r io.Reader, creating gettingData) (data [][]byte, err error) {
+	return creating(r)
+}
 
-	src := make(map[string]string)
-	
-	err = json.Unmarshal(data, &src)
+func sendMessageToRegistrar(content [][]byte, key string) error {
 
-	if err != nil {
-		return data, err
+	url := fmt.Sprintf("%s/%s", "http://localhost", key)
+
+	for _, data := range content {
+		rdr := bytes.NewReader(data)
+
+		req, err := http.NewRequest("POST", url, rdr)
+
+		if err != nil {
+			return err
+		}
+
+		client := http.Client{Timeout: time.Second * 300}
+
+		response, err := client.Do(req)
+
+		if err != nil {
+			return err
+		}
+
+		defer response.Body.Close()
+
+		if response.StatusCode != http.StatusOK {
+			return fmt.Errorf("status code isn't expected. Code %d", response.StatusCode)
+		}
 	}
 
-	entity.LoadFromMap(src);
-	
-	return entity.Json()
-}
-
-
-func sendMessageToRegistrar(content []byte) error {
-
 	return nil
-
 }

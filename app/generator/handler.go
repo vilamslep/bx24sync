@@ -2,13 +2,13 @@ package generator
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
 
 	bx24 "github.com/vi-la-muerto/bx24sync"
+	schemes "github.com/vi-la-muerto/bx24sync/scheme/sql"
 )
 
 type executeDBQuery func(params map[string]string) (data []map[string]string, err error)
@@ -24,11 +24,19 @@ func HandlerWithDatabaseConnection(executeQuery executeDBQuery) bx24.HandlerFunc
 		id := "0x" + strings.ToUpper(string(body)[46:78])
 
 		if data, err := executeQuery(map[string]string{"${client}": id}); err == nil {
-			if content, err := json.Marshal(&data); err == nil {
+
+			scheme, err := schemes.CreateClientScheme(strings.NewReader("clientScheme.json"))
+
+			if err != nil {
+				return writeServerError(w, err)
+			}
+
+			if content, err := schemes.ConvertThroughClient(data, scheme); err == nil {
 				w.Write(content)
 			} else {
 				return writeServerError(w, err)
 			}
+
 		} else {
 			return writeServerError(w, err)
 		}

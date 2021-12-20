@@ -4,3 +4,5 @@
 *.exe
 *.txt
 example
+coverage.out.tmp
+coverage.out
