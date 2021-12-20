@@ -57,7 +57,12 @@ func sendMessageToGenerator(msg bx24.Message, generator bx24.Endpoint, target bx
 
 	rd := bytes.NewReader(msg.Value)
 
-	if response, err := createAndExecRequest("POST", url, rd); err == nil || response.StatusCode != http.StatusOK {
+	if response, err := createAndExecRequest("POST", url, rd); err == nil {
+		if response.StatusCode != http.StatusOK {
+			err := fmt.Errorf("bad response from generator" )
+			commitError(msg, err)
+			return
+		}
 		defer response.Body.Close()
 
 		if err := commitNewMessage(response.Body, creating, key, target); err != nil {
@@ -94,7 +99,7 @@ func sendMessageToRegistrar(content [][]byte, key string, target bx24.Endpoint) 
 	for _, data := range content {
 		rd := bytes.NewReader(data)
 
-		if response, err := createAndExecRequest(url, "POST", rd); err == nil {
+		if response, err := createAndExecRequest("POST", url, rd); err == nil {
 			defer response.Body.Close()
 
 			if response.StatusCode != http.StatusOK {
@@ -108,7 +113,7 @@ func sendMessageToRegistrar(content [][]byte, key string, target bx24.Endpoint) 
 	return nil
 }
 
-func createAndExecRequest(url string, method string, rd io.Reader) (*http.Response, error) {
+func createAndExecRequest(method string, url string, rd io.Reader) (*http.Response, error) {
 
 	if req, err := http.NewRequest(method, url, rd); err == nil {
 		client := http.Client{Timeout: time.Second * 300}

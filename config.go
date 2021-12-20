@@ -28,12 +28,12 @@ func (e Endpoint) URL() string {
 		protocol += "s"
 	}
 
-	temp := "%s://%s"
-	if e.Method != "" {
-		temp += "/%s"
+	if e.Method == "" {
+		return fmt.Sprintf("%s://%s", protocol, e.String())
+	} else {
+		return fmt.Sprintf("%s://%s/%s", protocol, e.String(), e.Method)
 	}
 
-	return fmt.Sprintf(temp, protocol, e.String(), e.Method)
 }
 
 type BasicAuth struct {
