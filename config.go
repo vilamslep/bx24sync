@@ -33,7 +33,6 @@ func (e Endpoint) URL() string {
 	} else {
 		return fmt.Sprintf("%s://%s/%s", protocol, e.String(), e.Method)
 	}
-
 }
 
 type BasicAuth struct {
