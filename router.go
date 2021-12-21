@@ -22,19 +22,18 @@ type Router struct {
 func NewRouter(accessLog io.Writer, errorLog io.Writer, enableLoggingBody bool) (r Router) {
 	r.methods = make(map[string]*HttpMethod)
 
+	formatter := &log.TextFormatter{
+		ForceColors:   true,
+		FullTimestamp: true,
+	}
+
 	r.accessLog = log.New()
 	r.accessLog.Out = accessLog
-	r.accessLog.SetFormatter(&log.TextFormatter{
-		ForceColors:   true,
-		FullTimestamp: true,
-	})
-
+	r.accessLog.SetFormatter(formatter)
+	
 	r.errorLog = log.New()
 	r.errorLog.Out = errorLog
-	r.errorLog.SetFormatter(&log.TextFormatter{
-		ForceColors:   true,
-		FullTimestamp: true,
-	})
+	r.errorLog.SetFormatter(formatter)
 
 	r.needLogBody = enableLoggingBody
 

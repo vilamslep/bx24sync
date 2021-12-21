@@ -4,24 +4,35 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
+	"os"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	bx24 "github.com/vi-la-muerto/bx24sync"
 	scheme "github.com/vi-la-muerto/bx24sync/scheme/bitrix24"
 )
 
 type gettingData func(io.Reader) ([][]byte, error)
 
+type commit struct {
+	fields  log.Fields
+	message string
+	level   string
+}
+
 func Run() {
 
-	if err := runScanner(); err != nil {
+	loggerIn := make(chan commit)
+
+	go commitLogMessage(loggerIn, os.Stdout)
+
+	if err := runScanner(loggerIn); err != nil {
 		log.Fatalln(err)
 	}
 }
 
-func runScanner() error {
+func runScanner(loggerIn chan commit) error {
 
 	config, err := bx24.NewConsumerConfigFromEnv()
 
@@ -31,14 +42,18 @@ func runScanner() error {
 
 	scanner := bx24.NewKafkaScanner(config)
 
-	for scanner.Scan() {
-		msg := scanner.Message()
-		sendMessageToGenerator(msg, config.GeneratorEndpoint, config.TargetEndpoint)
+	msg := bx24.Message {
+		 Topic: "topic",
+		 Offset: 1,
 	}
+	// for scanner.Scan() {
+	// 	msg := scanner.Message()
+ 	sendMessageToGenerator(msg, config.GeneratorEndpoint, config.TargetEndpoint, loggerIn)
+	// }
 	return scanner.Err()
 }
 
-func sendMessageToGenerator(msg bx24.Message, generator bx24.Endpoint, target bx24.Endpoint) {
+func sendMessageToGenerator(msg bx24.Message, generator bx24.Endpoint, target bx24.Endpoint, loggerIn chan commit) {
 
 	var creating gettingData
 	var url string
@@ -46,30 +61,63 @@ func sendMessageToGenerator(msg bx24.Message, generator bx24.Endpoint, target bx
 	key := string(msg.Key)
 	url = fmt.Sprintf("%s/%s", generator.URL(), key)
 
+	loggerIn <- commit{
+		fields:  log.Fields{"msg": msg},
+		message: "get new message from bus",
+		level:   "info",
+	}
+
 	switch key {
 	case "client":
 		creating = scheme.GetContactsFromRaw
 	default:
 		err := fmt.Errorf("not define method for key '%s'", string(msg.Key))
-		commitError(msg, err)
+		loggerIn <- commit{
+			fields:  log.Fields{"msg": msg},
+			message: err.Error(),
+			level:   "info",
+		}
 		return
 	}
 
 	rd := bytes.NewReader(msg.Value)
 
+	loggerIn <- commit{
+		fields:  log.Fields{"msg": msg},
+		message: "Getting data from generator",
+		level:   "info",
+	}
+
 	if response, err := createAndExecRequest("POST", url, rd); err == nil {
 		if response.StatusCode != http.StatusOK {
-			err := fmt.Errorf("bad response from generator" )
-			commitError(msg, err)
+			err := fmt.Errorf("bad response from generator")
+			loggerIn <- commit{
+				fields:  log.Fields{"msg": msg},
+				message: err.Error(),
+				level:   "error",
+			}
 			return
 		}
 		defer response.Body.Close()
 
+		loggerIn <- commit{
+			fields:  log.Fields{"msg": msg},
+			message: "Sending data to registrar",
+			level:   "info",
+		}
 		if err := commitNewMessage(response.Body, creating, key, target); err != nil {
-			commitError(msg, err)
+			loggerIn <- commit{
+				fields:  log.Fields{"msg": msg},
+				message: err.Error(),
+				level:   "error",
+			}
 		}
 	} else {
-		commitError(msg, err)
+		loggerIn <- commit{
+			fields:  log.Fields{"msg": msg},
+			message: err.Error(),
+			level:   "error",
+		}
 	}
 }
 
@@ -123,8 +171,23 @@ func createAndExecRequest(method string, url string, rd io.Reader) (*http.Respon
 	}
 }
 
-//TODO need to make up where save errors
-func commitError(msg bx24.Message, err error) {
-	content := fmt.Sprintf("%s; Error: %s", msg.String(), err.Error())
-	log.Println(content)
+func commitLogMessage(loggerIn chan commit, wrt io.Writer) {
+	logger := log.New()
+	logger.SetLevel(log.DebugLevel)
+	logger.SetFormatter(&log.TextFormatter{
+		ForceColors:   true,
+		FullTimestamp: true,
+	})
+
+	for {
+		msg := <-loggerIn
+
+		entry := log.WithFields(msg.fields)
+		if msg.level == "error" {
+			entry.Error(msg.message)
+		} else {
+			entry.Info(msg.message)
+		}
+
+	}
 }
