@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -22,17 +21,17 @@ type commit struct {
 }
 
 func Run() {
+	log.SetFormatter(&log.TextFormatter{
+		ForceColors:   true,
+		FullTimestamp: true,
+	})
 
-	loggerIn := make(chan commit)
-
-	go commitLogMessage(loggerIn, os.Stdout)
-
-	if err := runScanner(loggerIn); err != nil {
+	if err := runScanner(); err != nil {
 		log.Fatalln(err)
 	}
 }
 
-func runScanner(loggerIn chan commit) error {
+func runScanner() error {
 
 	config, err := bx24.NewConsumerConfigFromEnv()
 
@@ -44,12 +43,12 @@ func runScanner(loggerIn chan commit) error {
 
 	for scanner.Scan() {
 		msg := scanner.Message()
-		sendMessageToGenerator(msg, config.GeneratorEndpoint, config.TargetEndpoint, loggerIn)
+		sendMessageToGenerator(msg, config.GeneratorEndpoint, config.TargetEndpoint)
 	}
 	return scanner.Err()
 }
 
-func sendMessageToGenerator(msg bx24.Message, generator bx24.Endpoint, target bx24.Endpoint, loggerIn chan commit) {
+func sendMessageToGenerator(msg bx24.Message, generator bx24.Endpoint, target bx24.Endpoint) {
 
 	var creating gettingData
 	var url string
@@ -57,63 +56,63 @@ func sendMessageToGenerator(msg bx24.Message, generator bx24.Endpoint, target bx
 	key := string(msg.Key)
 	url = fmt.Sprintf("%s/%s", generator.URL(), key)
 
-	loggerIn <- commit{
+	commitLogMessage(commit{
 		fields:  log.Fields{"key": string(msg.Key), "offset": msg.Offset, "topic": msg.Topic, "value": string(msg.Value)},
 		message: "get new message from bus",
 		level:   "info",
-	}
+	})
 
 	switch key {
 	case "client":
 		creating = scheme.GetContactsFromRaw
 	default:
 		err := fmt.Errorf("not define method for key '%s'", string(msg.Key))
-		loggerIn <- commit{
+		commitLogMessage(commit{
 			fields:  log.Fields{"key": string(msg.Key), "offset": msg.Offset, "topic": msg.Topic, "value": string(msg.Value)},
 			message: err.Error(),
 			level:   "info",
-		}
+		})
 		return
 	}
 
 	rd := bytes.NewReader(msg.Value)
 
-	loggerIn <- commit{
+	commitLogMessage(commit{
 		fields:  log.Fields{"key": string(msg.Key), "offset": msg.Offset, "topic": msg.Topic, "value": string(msg.Value)},
 		message: "Getting data from generator",
 		level:   "info",
-	}
+	})
 
 	if response, err := createAndExecRequest("POST", url, rd); err == nil {
 		if response.StatusCode != http.StatusOK {
 			err := fmt.Errorf("bad response from generator")
-			loggerIn <- commit{
+			commitLogMessage(commit{
 				fields:  log.Fields{"key": string(msg.Key), "offset": msg.Offset, "topic": msg.Topic, "value": string(msg.Value)},
 				message: err.Error(),
 				level:   "error",
-			}
+			})
 			return
 		}
 		defer response.Body.Close()
 
-		loggerIn <- commit{
+		commitLogMessage(commit{
 			fields:  log.Fields{"key": string(msg.Key), "offset": msg.Offset, "topic": msg.Topic, "value": string(msg.Value)},
 			message: "Sending data to registrar",
 			level:   "info",
-		}
+		})
 		if err := commitNewMessage(response.Body, creating, key, target); err != nil {
-			loggerIn <- commit{
+			commitLogMessage(commit{
 				fields:  log.Fields{"key": string(msg.Key), "offset": msg.Offset, "topic": msg.Topic, "value": string(msg.Value)},
 				message: err.Error(),
 				level:   "error",
-			}
+			})
 		}
 	} else {
-		loggerIn <- commit{
+		commitLogMessage(commit{
 			fields:  log.Fields{"key": string(msg.Key), "offset": msg.Offset, "topic": msg.Topic, "value": string(msg.Value)},
 			message: err.Error(),
 			level:   "error",
-		}
+		})
 	}
 }
 
@@ -167,23 +166,11 @@ func createAndExecRequest(method string, url string, rd io.Reader) (*http.Respon
 	}
 }
 
-func commitLogMessage(loggerIn chan commit, wrt io.Writer) {
-	logger := log.New()
-	logger.SetLevel(log.DebugLevel)
-	logger.SetFormatter(&log.TextFormatter{
-		ForceColors:   true,
-		FullTimestamp: true,
-	})
-
-	for {
-		msg := <-loggerIn
-
-		entry := log.WithFields(msg.fields)
-		if msg.level == "error" {
-			entry.Error(msg.message)
-		} else {
-			entry.Info(msg.message)
-		}
-
+func commitLogMessage(msg commit) {
+	entry := log.WithFields(msg.fields)
+	if msg.level == "error" {
+		entry.Error(msg.message)
+	} else {
+		entry.Info(msg.message)
 	}
 }
