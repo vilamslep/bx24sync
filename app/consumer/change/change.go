@@ -41,10 +41,19 @@ func runScanner() error {
 
 	scanner := bx24.NewKafkaScanner(config)
 
+	marker := make(chan struct{}, 20)
 	for scanner.Scan() {
+
 		msg := scanner.Message()
-		sendMessageToGenerator(msg, config.GeneratorEndpoint, config.TargetEndpoint)
+
+		marker <- struct{}{}
+
+		go func(marker chan struct{}, msg bx24.Message) {
+			sendMessageToGenerator(msg, config.GeneratorEndpoint, config.TargetEndpoint)
+			<-marker
+		}(marker, msg)
 	}
+
 	return scanner.Err()
 }
 
