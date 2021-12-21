@@ -58,7 +58,7 @@ func sendMessageToGenerator(msg bx24.Message, generator bx24.Endpoint, target bx
 	url = fmt.Sprintf("%s/%s", generator.URL(), key)
 
 	loggerIn <- commit{
-		fields:  log.Fields{"msg": msg},
+		fields:  log.Fields{"key": string(msg.Key), "offset": msg.Offset, "topic": msg.Topic, "value": string(msg.Value)},
 		message: "get new message from bus",
 		level:   "info",
 	}
@@ -69,7 +69,7 @@ func sendMessageToGenerator(msg bx24.Message, generator bx24.Endpoint, target bx
 	default:
 		err := fmt.Errorf("not define method for key '%s'", string(msg.Key))
 		loggerIn <- commit{
-			fields:  log.Fields{"msg": msg},
+			fields:  log.Fields{"key": string(msg.Key), "offset": msg.Offset, "topic": msg.Topic, "value": string(msg.Value)},
 			message: err.Error(),
 			level:   "info",
 		}
@@ -79,7 +79,7 @@ func sendMessageToGenerator(msg bx24.Message, generator bx24.Endpoint, target bx
 	rd := bytes.NewReader(msg.Value)
 
 	loggerIn <- commit{
-		fields:  log.Fields{"msg": msg},
+		fields:  log.Fields{"key": string(msg.Key), "offset": msg.Offset, "topic": msg.Topic, "value": string(msg.Value)},
 		message: "Getting data from generator",
 		level:   "info",
 	}
@@ -88,7 +88,7 @@ func sendMessageToGenerator(msg bx24.Message, generator bx24.Endpoint, target bx
 		if response.StatusCode != http.StatusOK {
 			err := fmt.Errorf("bad response from generator")
 			loggerIn <- commit{
-				fields:  log.Fields{"msg": msg},
+				fields:  log.Fields{"key": string(msg.Key), "offset": msg.Offset, "topic": msg.Topic, "value": string(msg.Value)},
 				message: err.Error(),
 				level:   "error",
 			}
@@ -97,20 +97,20 @@ func sendMessageToGenerator(msg bx24.Message, generator bx24.Endpoint, target bx
 		defer response.Body.Close()
 
 		loggerIn <- commit{
-			fields:  log.Fields{"msg": msg},
+			fields:  log.Fields{"key": string(msg.Key), "offset": msg.Offset, "topic": msg.Topic, "value": string(msg.Value)},
 			message: "Sending data to registrar",
 			level:   "info",
 		}
 		if err := commitNewMessage(response.Body, creating, key, target); err != nil {
 			loggerIn <- commit{
-				fields:  log.Fields{"msg": msg},
+				fields:  log.Fields{"key": string(msg.Key), "offset": msg.Offset, "topic": msg.Topic, "value": string(msg.Value)},
 				message: err.Error(),
 				level:   "error",
 			}
 		}
 	} else {
 		loggerIn <- commit{
-			fields:  log.Fields{"msg": msg},
+			fields:  log.Fields{"key": string(msg.Key), "offset": msg.Offset, "topic": msg.Topic, "value": string(msg.Value)},
 			message: err.Error(),
 			level:   "error",
 		}
