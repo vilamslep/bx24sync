@@ -42,14 +42,10 @@ func runScanner(loggerIn chan commit) error {
 
 	scanner := bx24.NewKafkaScanner(config)
 
-	msg := bx24.Message {
-		 Topic: "topic",
-		 Offset: 1,
+	for scanner.Scan() {
+		msg := scanner.Message()
+		sendMessageToGenerator(msg, config.GeneratorEndpoint, config.TargetEndpoint, loggerIn)
 	}
-	// for scanner.Scan() {
-	// 	msg := scanner.Message()
- 	sendMessageToGenerator(msg, config.GeneratorEndpoint, config.TargetEndpoint, loggerIn)
-	// }
 	return scanner.Err()
 }
 
