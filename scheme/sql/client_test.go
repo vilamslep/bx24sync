@@ -16,17 +16,17 @@ func (r ErrorReader) Read(b []byte) (n int, err error) {
 }
 
 func Test_CreateClientScheme_Success(t *testing.T) {
-	if _, err := CreateClientScheme(getReaderSchemeForCorrectlyScheme()); err != nil {
+	if _, err := CreateScheme(getReaderSchemeForCorrectlyScheme()); err != nil {
 		t.Error(err)
 	}
 }
 func Test_CreateClientScheme_Error_ReaderError(t *testing.T) {
-	if _, err := CreateClientScheme(ErrorReader{}); err == nil {
+	if _, err := CreateScheme(ErrorReader{}); err == nil {
 		t.Error("Must be return error. Error expected is 'Reader error'")
 	}
 }
 func Test_CreateClientScheme_Error_UnmarshalError(t *testing.T) {
-	if _, err := CreateClientScheme(getReaderSchemeNotJson()); err == nil {
+	if _, err := CreateScheme(getReaderSchemeNotJson()); err == nil {
 		t.Error("Must be return error. Error expected is 'json/SyntaxError'")
 	}
 }
@@ -39,7 +39,7 @@ func Test_CheckByScheme_Success(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	scheme, err := CreateClientScheme(getReaderSchemeForCorrectlyScheme())
+	scheme, err := CreateScheme(getReaderSchemeForCorrectlyScheme())
 
 	if err != nil {
 		t.Error(err)
@@ -55,7 +55,7 @@ func Test_CheckByScheme_Error_NotFoundKey(t *testing.T) {
 
 	testData := getUncorrectlyTestData()
 
-	scheme, err := CreateClientScheme(getReaderSchemeForCorrectlyScheme())
+	scheme, err := CreateScheme(getReaderSchemeForCorrectlyScheme())
 
 	if err != nil {
 		t.Error(err)
@@ -73,13 +73,13 @@ func Test_ConvertToClient_Success(t *testing.T) {
 
 	item := getCorrectlyTestData()
 
-	scheme, err := CreateClientScheme(getReaderSchemeForCorrectlyScheme())
+	scheme, err := CreateScheme(getReaderSchemeForCorrectlyScheme())
 
 	if err != nil {
 		t.Errorf("Error with correctly scheme reader: %s", err.Error())
 	}
 
-	if client, err := convertToClient(item, scheme); err != nil {
+	if client, err := convert(scheme, item); err != nil {
 		t.Errorf("Converting error: %s ", err)
 	} else if client != rightClient {
 		t.Error("Clients must be same. But they are different")
@@ -90,13 +90,13 @@ func Test_ConvertToClient_Error_KeyNotFound(t *testing.T) {
 	data := make(map[string]string)
 	data["id"] = "id"
 
-	scheme, err := CreateClientScheme(getReaderSchemeForCorrectlyScheme())
+	scheme, err := CreateScheme(getReaderSchemeForCorrectlyScheme())
 
 	if err != nil {
 		t.Errorf("Error with correctly scheme reader: %s", err.Error())
 	}
 
-	if _, err := convertToClient(data, scheme); err == nil {
+	if _, err := convert(scheme, data); err == nil {
 		t.Error("Must be return error. Error expected is  'not found item by key'")
 	}
 }
@@ -108,13 +108,13 @@ func Test_ConvertThroughClient_Success(t *testing.T) {
 	if err != nil {
 		t.Errorf("Getting test data falied: %s", err.Error())
 	}
-	scheme, err := CreateClientScheme(getReaderSchemeForCorrectlyScheme())
+	scheme, err := CreateScheme(getReaderSchemeForCorrectlyScheme())
 
 	if err != nil {
 		t.Errorf("Error with correctly scheme reader: %s", err.Error())
 	}
 
-	if _, err := ConvertThroughClient(items, scheme); err != nil {
+	if _, err := ConvertToClients(scheme, items); err != nil {
 		t.Errorf("Converting error: %s ", err)
 	}
 }

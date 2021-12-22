@@ -180,14 +180,12 @@ func (m *HttpMethod) checkInput(r io.Reader) (bool, error) {
 }
 
 func NewHttpMethod(path string, handler HandlerFunc, checkInput CheckInput, allowsMethods []string) HttpMethod {
-	
 	return HttpMethod{
 		Path: path,
 		Handler: handler,
 		CheckInput: checkInput,
 		AllowMethods: allowsMethods,
 	}
-
 }
 
 type writerLogger struct {

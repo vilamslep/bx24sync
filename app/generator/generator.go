@@ -47,18 +47,66 @@ func settingRouter(r bx24.Router, enableCheckInput bool, db *sql.DB, queryTextsD
 
 	allowsMethods := []string{"POST"}
 
-	content, err := os.ReadFile(fmt.Sprintf("%s/client.sql", queryTextsDir))
+	txtCl, err := getQueryText(fmt.Sprintf("%s/client.sql", queryTextsDir))
 	if err != nil {
-		return err
+		return
+	}
+
+	txtRecept, err := getQueryText(fmt.Sprintf("%s/reception.sql", queryTextsDir))
+	if err != nil {
+		return
+	}
+
+	txtReceptProp, err := getQueryText(fmt.Sprintf("%s/reception_propertyes.sql", queryTextsDir))
+	if err != nil {
+		return
+	}
+
+	textsQuery := map[string]string{
+		"client":               string(txtCl),
+		"reception":            string(txtRecept),
+		"reception_propertyes": string(txtReceptProp),
 	}
 
 	r.AddMethod(
 		bx24.HttpMethod{
 			Path:         "/client",
-			Handler:      HandlerWithDatabaseConnection(ExecuteQuery(db, string(content))),
+			Handler:      HandlerClientWithDatabaseConnection(bx24.ExecuteQuery(db, textsQuery)),
+			CheckInput:   checkInputFunc,
+			AllowMethods: allowsMethods,
+		})
+
+	r.AddMethod(
+		bx24.HttpMethod{
+			Path:         "/reception",
+			Handler:      HandlerReceptionWithDatabaseConnection(bx24.ExecuteQuery(db, textsQuery)),
+			CheckInput:   checkInputFunc,
+			AllowMethods: allowsMethods,
+		})
+
+	r.AddMethod(
+		bx24.HttpMethod{
+			Path:         "/order",
+			Handler:      HandlerOrderWithDatabaseConnection(bx24.ExecuteQuery(db, textsQuery)),
+			CheckInput:   checkInputFunc,
+			AllowMethods: allowsMethods,
+		})
+
+	r.AddMethod(
+		bx24.HttpMethod{
+			Path:         "/shipment",
+			Handler:      HandlerShipmentWithDatabaseConnection(bx24.ExecuteQuery(db, textsQuery)),
 			CheckInput:   checkInputFunc,
 			AllowMethods: allowsMethods,
 		})
 
 	return err
+}
+
+func getQueryText(path string) ([]byte, error) {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	return content, nil
 }

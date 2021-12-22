@@ -2,8 +2,6 @@ package sql
 
 import (
 	"encoding/json"
-	"fmt"
-	"io"
 )
 
 type Client struct {
@@ -28,38 +26,23 @@ type Client struct {
 	Email                     string `json:"email"`
 }
 
-type field struct {
-	Key      string
-	Required bool
-}
+func ConvertToClients(scheme []Field, data []map[string]string) (b []Client, err error) {
 
-func ConvertThroughClient(data []map[string]string, scheme []field) (b []byte, err error) {
-
-	res := make([]Client, 0)
+	res := make([]Client, 0, len(data))
 
 	for _, v := range data {
-		if c, err := convertToClient(v, scheme); err == nil {
-			res = append(res, c)
-		} else {
-			return nil, err
+		if c, err := convert(scheme, v); err == nil { 
+			res = append(res, c) 
+		} else { 
+			return nil, err 
 		}
 	}
-
-	return json.Marshal(res)
+	return res, err
 }
 
-func CreateClientScheme(reader io.Reader) (scheme []field, err error) {
-	if content, err := io.ReadAll(reader); err == nil {
-		if err := json.Unmarshal(content, &scheme); err != nil {
-			return scheme, err
-		}
-	} else {
-		return scheme, err
-	}
-	return scheme, err
-}
 
-func convertToClient(data map[string]string, scheme []field) (c Client, err error) {
+
+func convert(scheme []Field, data map[string]string) (c Client, err error) {
 	if err := checkByScheme(data, scheme); err != nil {
 		return Client{}, err
 	}
@@ -74,15 +57,5 @@ func convertToClient(data map[string]string, scheme []field) (c Client, err erro
 	return c, err
 }
 
-func checkByScheme(data map[string]string, scheme []field) (err error) {
-	for _, f := range scheme {
-		if _, ok := data[f.Key]; !ok {
-			if f.Required {
-				err = fmt.Errorf("not found item by key %s", f.Key)
-				break
-			}
-		}
-	}
-	return err
-}
+
 

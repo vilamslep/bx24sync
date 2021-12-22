@@ -87,6 +87,7 @@ func NewGeneratorConfigFromEnv() GeneratorConfig {
 type DataBaseConnection struct {
 	Socket    `json:"socket"`
 	BasicAuth `json:"auth"`
+	Database string `json:"database"`
 }
 
 func NewDataBaseConnectionFromEnv() DataBaseConnection {
@@ -99,6 +100,7 @@ func NewDataBaseConnectionFromEnv() DataBaseConnection {
 			User:     GetEnvAsString("DB_USER", ""),
 			Password: GetEnvAsString("DB_PASSWORD", ""),
 		},
+		Database: GetEnvAsString("DB_BASE", ""),
 	}
 }
 
