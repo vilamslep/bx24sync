@@ -13,6 +13,9 @@ type Socket struct {
 }
 
 func (s Socket) String() string {
+	if s.Port == 0 {
+		return fmt.Sprintf("%s", s.Host)	
+	}
 	return fmt.Sprintf("%s:%d", s.Host, s.Port)
 }
 
@@ -169,6 +172,7 @@ func NewConsumerConfigFromEnv() (ConsumerConfig, error) {
 				Port: GetEnvAsInt("TARGET_PORT", 0),
 			},
 			SSL: GetEnvAsBool("TARGET_SSL", false),
+			Method: GetEnvAsString("TARGET_METHOD", ""),
 		}
 	}
 

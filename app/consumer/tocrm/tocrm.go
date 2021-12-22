@@ -33,7 +33,6 @@ func runScanner() error {
 }
 
 func sendToCrm(msg bx24.Message, target bx24.Endpoint) {
-
 	key := string(msg.Key)
 
 	var entity scheme.Entity
@@ -54,18 +53,24 @@ func sendToCrm(msg bx24.Message, target bx24.Endpoint) {
 		commitError(msg, err)
 	}
 
-	response, err := entity.Find()
+	restUrl := target.URL()
+
+	response, err := entity.Find(restUrl)
 
 	if err != nil {
 		commitError(msg, err)
 	}
 
-	if response.Result[0].ID != "" {
-		_, _ = entity.Add()
+	if response.Total == 0 {
+		if _, err := entity.Add(restUrl); err != nil {
+			commitError(msg, err)
+		}
 	} else {
-		_, _ = entity.Update()
+		id := response.Result[0].ID
+		if _, err := entity.Update(restUrl, id); err != nil {
+			commitError(msg, err)
+		}
 	}
-
 }
 
 //TODO need to make up where save errors

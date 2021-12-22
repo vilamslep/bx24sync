@@ -1,13 +1,24 @@
 package bitrix24
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
+	"net/http"
 	"strings"
+	"time"
 	"unicode"
 
 	"github.com/vi-la-muerto/bx24sync/scheme/bitrix24/converter"
 	"github.com/vi-la-muerto/bx24sync/scheme/sql"
+)
+
+const (
+	findMethod   = "crm.contact.list"
+	getMethod    = "crm.contact.get"
+	addMethod    = "crm.contact.add"
+	updateMethod = "crm.contact.update"
 )
 
 type Contact struct {
@@ -57,13 +68,93 @@ func NewContactFromJson(raw []byte) (contact Contact, err error) {
 	return contact, err
 }
 
-func (c Contact) Find() (response BitrixRestResponse, err error) { return response, err }
+func (c Contact) Find(restUrl string) (response BitrixRestResponse, err error) {
 
-func (c Contact) Add() (response BitrixRestResponse, err error) { return response, err }
+	if restUrl[len(restUrl)-1:] == "/" {
+		restUrl = restUrl[:len(restUrl)-1]
+	}
 
-// func (c Contact) Get() (response BitrixRestResponse, err error){ return response, err }
+	url := fmt.Sprintf("%s/%s?filter[ORIGIN_ID]=%s", restUrl, findMethod, c.Id)
 
-func (c Contact) Update() (response BitrixRestResponse, err error) { return response, err }
+	if res, err := execReq("GET", url, nil); err == nil {
+		return checkResponse(res)
+	} else {
+		return response, err
+	}
+}
+
+func (c Contact) Add(restUrl string) (response BitrixRestResponse, err error) {
+
+	if restUrl[len(restUrl)-1:] == "/" {
+		restUrl = restUrl[:len(restUrl)-1]
+	}
+
+	url := fmt.Sprintf("%s/%s", restUrl, addMethod)
+
+	rd, err := prepareReader(c)
+	if err != nil {
+		return response, err
+	}
+
+	if res, err := execReq("POST", url, rd); err == nil {
+		return checkResponse(res)
+	} else {
+		return response, err
+	}
+}
+
+func (c Contact) Update(restUrl string, id string) (response BitrixRestResponse, err error) {
+	if restUrl[len(restUrl)-1:] == "/" {
+		restUrl = restUrl[:len(restUrl)-1]
+	}
+
+	url := fmt.Sprintf("%s/%s?id=%s", restUrl, updateMethod, id)
+
+	rd, err := prepareReader(c)
+	if err != nil {
+		return response, err
+	}
+
+	if res, err := execReq("POST", url, rd); err == nil {
+		return checkResponse(res)
+	} else {
+		return response, err
+	}
+}
+
+func prepareReader(c Contact) (rd io.Reader, err error) {
+
+	data := make(map[string]Contact)
+	data["fields"] = c
+
+	if content, err := json.Marshal(data); err == nil {
+		rd = bytes.NewReader(content)
+	} else {
+		return rd, err
+	}
+	return rd, err
+}
+
+func checkResponse(res *http.Response) (response BitrixRestResponse, err error) {
+
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body)
+
+	if res.StatusCode != http.StatusOK {
+		if err != nil {
+			return response, err
+		}
+		return response, fmt.Errorf(fmt.Sprintf("%s: %s", "bad request", string(body)))
+	} else {
+		return fillResponse(body)
+	}
+}
+
+func fillResponse(bodyRaw []byte) (response BitrixRestResponse, err error) {
+	err = json.Unmarshal(bodyRaw, &response)
+	return response, err
+}
 
 func removeNumbers(val string) (res string) {
 
@@ -139,4 +230,14 @@ func newContactFromClient(client sql.Client) Contact {
 	c.Email = converter.String(client.Email).ContactDataSlice(";", "PHONE", "EMAIL")
 
 	return c
+}
+
+func execReq(method string, url string, rd io.Reader) (*http.Response, error) {
+
+	if req, err := http.NewRequest(method, url, rd); err == nil {
+		client := http.Client{Timeout: time.Second * 300}
+		return client.Do(req)
+	} else {
+		return nil, err
+	}
 }
