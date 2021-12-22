@@ -15,10 +15,9 @@ import (
 )
 
 const (
-	findMethod   = "crm.contact.list"
-	getMethod    = "crm.contact.get"
-	addMethod    = "crm.contact.add"
-	updateMethod = "crm.contact.update"
+	findContact   = "crm.contact.list"
+	addContact    = "crm.contact.add"
+	updateContact = "crm.contact.update"
 )
 
 type Contact struct {
@@ -74,7 +73,7 @@ func (c Contact) Find(restUrl string) (response BitrixRestResponse, err error) {
 		restUrl = restUrl[:len(restUrl)-1]
 	}
 
-	url := fmt.Sprintf("%s/%s?filter[ORIGIN_ID]=%s", restUrl, findMethod, c.Id)
+	url := fmt.Sprintf("%s/%s?filter[ORIGIN_ID]=%s", restUrl, findContact, c.Id)
 
 	if res, err := execReq("GET", url, nil); err == nil {
 		return checkResponse(res)
@@ -89,7 +88,7 @@ func (c Contact) Add(restUrl string) (response BitrixRestResponse, err error) {
 		restUrl = restUrl[:len(restUrl)-1]
 	}
 
-	url := fmt.Sprintf("%s/%s", restUrl, addMethod)
+	url := fmt.Sprintf("%s/%s", restUrl, addContact)
 
 	rd, err := prepareReader(c)
 	if err != nil {
@@ -108,7 +107,7 @@ func (c Contact) Update(restUrl string, id string) (response BitrixRestResponse,
 		restUrl = restUrl[:len(restUrl)-1]
 	}
 
-	url := fmt.Sprintf("%s/%s?id=%s", restUrl, updateMethod, id)
+	url := fmt.Sprintf("%s/%s?id=%s", restUrl, updateContact, id)
 
 	rd, err := prepareReader(c)
 	if err != nil {
@@ -128,11 +127,10 @@ func prepareReader(c Contact) (rd io.Reader, err error) {
 	data["fields"] = c
 
 	if content, err := json.Marshal(data); err == nil {
-		rd = bytes.NewReader(content)
+		return bytes.NewReader(content), err
 	} else {
 		return rd, err
 	}
-	return rd, err
 }
 
 func checkResponse(res *http.Response) (response BitrixRestResponse, err error) {

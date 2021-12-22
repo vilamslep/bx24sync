@@ -25,18 +25,24 @@ func runScanner() error {
 
 	scanner := bx24.NewKafkaScanner(config)
 
+	marker := make(chan struct{}, 20)
 	for scanner.Scan() {
 		msg := scanner.Message()
-		sendToCrm(msg, config.TargetEndpoint)
+		marker <- struct{}{}
+		go func(marker chan struct{}, msg bx24.Message) {
+			sendToCrm(msg, config.TargetEndpoint)
+			<-marker
+		}(marker, msg)
 	}
 	return scanner.Err()
 }
 
 func sendToCrm(msg bx24.Message, target bx24.Endpoint) {
-	key := string(msg.Key)
-
+	
 	var entity scheme.Entity
 	var err error
+	
+	key := string(msg.Key)
 
 	switch key {
 	case "client":
@@ -48,6 +54,11 @@ func sendToCrm(msg bx24.Message, target bx24.Endpoint) {
 	case "order":
 	case "shipment":
 	case "reception":
+		entity, err = scheme.NewDealFromJson(msg.Value)
+		if err != nil {
+			commitError(msg, err)
+			return
+		}
 	default:
 		err := fmt.Errorf("not define method for key '%s'", string(msg.Key))
 		commitError(msg, err)
@@ -57,9 +68,7 @@ func sendToCrm(msg bx24.Message, target bx24.Endpoint) {
 
 	response, err := entity.Find(restUrl)
 
-	if err != nil {
-		commitError(msg, err)
-	}
+	if err != nil { commitError(msg, err) }
 
 	if response.Total == 0 {
 		if _, err := entity.Add(restUrl); err != nil {

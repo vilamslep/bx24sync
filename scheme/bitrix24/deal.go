@@ -1,20 +1,28 @@
 package bitrix24
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 
 	"github.com/vi-la-muerto/bx24sync/scheme/bitrix24/converter"
 	"github.com/vi-la-muerto/bx24sync/scheme/sql"
 )
 
+const (
+	findDeal   = "crm.deal.list"
+	addDeal    = "crm.deal.add"
+	updateDeal = "crm.deal.update"
+)
+
 type Deal struct {
-	Id          string `json:"ORIGIN_ID"`
-	Name        string `json:"NAME"`
-	User        int    `json:"ASSIGNED_BY_ID"`
-	Date        string `json:"BEGINDATE"`
-	Category    int    `json:"CATEGORY_ID"`
-	contact     Contact
+	Id          string  `json:"ORIGIN_ID"`
+	Name        string  `json:"NAME"`
+	User        int     `json:"ASSIGNED_BY_ID"`
+	Date        string  `json:"BEGINDATE"`
+	Category    int     `json:"CATEGORY_ID"`
+	ContactData Contact `json:"ContactData"`
 	ContactId   int     `json:"CONTACT_ID"`
 	Sum         float32 `json:"OPPORTUNITY"`
 	Stage       string  `json:"STAGE_ID"`
@@ -24,6 +32,11 @@ type Deal struct {
 type UserField struct {
 	Id    string
 	Value string
+}
+
+func NewDealFromJson(raw []byte) (deal Deal, err error) {
+	err = json.Unmarshal(raw, &deal)
+	return deal, err
 }
 
 func GetDealFromRawAsReception(reader io.Reader) (data [][]byte, err error) {
@@ -37,9 +50,11 @@ func GetDealFromRawAsReception(reader io.Reader) (data [][]byte, err error) {
 
 	err = json.Unmarshal(content, &reseptions)
 
-	if err != nil { return }
+	if err != nil {
+		return
+	}
 	for _, reception := range reseptions {
-		
+
 		deal := newDealFromReception(reception)
 
 		if result, err := deal.Json(); err == nil {
@@ -52,61 +67,119 @@ func GetDealFromRawAsReception(reader io.Reader) (data [][]byte, err error) {
 	return data, err
 }
 
-func (c Deal) Find(restUrl string) (response BitrixRestResponse, err error) {
+func (d Deal) Find(restUrl string) (response BitrixRestResponse, err error) {
 
-	// if restUrl[len(restUrl)-1:] == "/" {
-	// 	restUrl = restUrl[:len(restUrl)-1]
-	// }
+	if restUrl[len(restUrl)-1:] == "/" {
+		restUrl = restUrl[:len(restUrl)-1]
+	}
 
-	// url := fmt.Sprintf("%s/%s?filter[ORIGIN_ID]=%s", restUrl, findMethod, c.Id)
+	url := fmt.Sprintf("%s/%s?filter[ORIGIN_ID]=%s", restUrl, findDeal, d.Id)
 
-	// if res, err := execReq("GET", url, nil); err == nil {
-	// 	return checkResponse(res)
-	// } else {
-	// 	return response, err
-	// }
-	return
+	if res, err := execReq("GET", url, nil); err == nil {
+		return checkResponse(res)
+	} else {
+		return response, err
+	}
 }
 
-func (c Deal) Add(restUrl string) (response BitrixRestResponse, err error) {
+func (d Deal) Add(restUrl string) (response BitrixRestResponse, err error) {
 
-	// if restUrl[len(restUrl)-1:] == "/" {
-	// 	restUrl = restUrl[:len(restUrl)-1]
-	// }
+	if restUrl[len(restUrl)-1:] == "/" {
+		restUrl = restUrl[:len(restUrl)-1]
+	}
 
-	// url := fmt.Sprintf("%s/%s", restUrl, addMethod)
+	url := fmt.Sprintf("%s/%s", restUrl, addDeal)
 
-	// rd, err := prepareReader(c)
-	// if err != nil {
-	// 	return response, err
-	// }
+	err = d.checkContact(restUrl)
+	if err != nil {
+		return
+	}
 
-	// if res, err := execReq("POST", url, rd); err == nil {
-	// 	return checkResponse(res)
-	// } else {
-	// 	return response, err
-	// }
-	return
+	rd, err := prepareDeal(d)
+	if err != nil {
+		return
+	}
+
+	if res, err := execReq("POST", url, rd); err == nil {
+		return checkResponse(res)
+	} else {
+		return response, err
+	}
 }
 
-func (c Deal) Update(restUrl string, id string) (response BitrixRestResponse, err error) {
-	// if restUrl[len(restUrl)-1:] == "/" {
-	// 	restUrl = restUrl[:len(restUrl)-1]
-	// }
+func (d *Deal) checkContact(url string) error {
+	response, err := d.ContactData.Find(url)
+	if err != nil {
+		return err
+	}
 
-	// url := fmt.Sprintf("%s/%s?id=%s", restUrl, updateMethod, id)
+	if response.Total == 0 {
+		if response, err := d.ContactData.Add(url); err == nil {
+			id := response.Result[0].ID
+			d.ContactId = converter.String(id).Int()
+		} else {
+			return err
+		}
+	} else {
+		id := response.Result[0].ID
+		d.ContactId = converter.String(id).Int()
+	}
 
-	// rd, err := prepareReader(c)
-	// if err != nil {
-	// 	return response, err
-	// }
+	return nil
+}
 
-	// if res, err := execReq("POST", url, rd); err == nil {
-	// 	return checkResponse(res)
-	// } else {
-	// 	return response, err
-	// }
-	return
+func prepareDeal(d Deal) (rd io.Reader, err error) {
+
+	data := make(map[string]map[string]string)
+
+	deal := make(map[string]string)
+
+	deal["ORIGIN_ID"] = d.Id
+	deal["NAME"] = d.Name
+
+	if d.User != 0 {
+		deal["ASSIGNED_BY_ID"] = fmt.Sprint(d.User)
+	}
+
+	deal["BEGINDATE"] = d.Date
+	deal["CATEGORY_ID"] = fmt.Sprint(d.Category)
+	deal["CONTACT_ID"] = fmt.Sprint(d.ContactId)
+
+	for _, v := range d.UsersFields {
+		deal[v.Id] = v.Value
+	}
+
+	data["fields"] = deal
+
+	if content, err := json.Marshal(data); err == nil {
+		return bytes.NewReader(content), err
+	} else {
+		return rd, err
+	}
+}
+
+func (d Deal) Update(restUrl string, id string) (response BitrixRestResponse, err error) {
+	if restUrl[len(restUrl)-1:] == "/" {
+		restUrl = restUrl[:len(restUrl)-1]
+	}
+
+	url := fmt.Sprintf("%s/%s?id=%s", restUrl, updateDeal, id)
+
+	err = d.checkContact(restUrl)
+	if err != nil {
+		return
+	}
+
+	rd, err := prepareDeal(d)
+	if err != nil {
+		return
+	}
+
+	if res, err := execReq("POST", url, rd); err == nil {
+		return checkResponse(res)
+	} else {
+		return response, err
+	}
 }
 
 func newDealFromReception(reception sql.Reception) Deal {
@@ -118,7 +191,7 @@ func newDealFromReception(reception sql.Reception) Deal {
 	d.User = converter.String(reception.UserId).Int()
 	d.Date = reception.Date
 	d.Category = 5
-	d.contact = newContactFromClient(reception.Client)
+	d.ContactData = newContactFromClient(reception.Client)
 	d.Stage = "C5:NEW"
 
 	for _, addFld := range reception.AdditionnalFields {
@@ -134,8 +207,8 @@ func newDealFromReception(reception sql.Reception) Deal {
 			value = addFld.Value
 		}
 
-		d.UsersFields = append(d.UsersFields, UserField{ 
-			Id: key,
+		d.UsersFields = append(d.UsersFields, UserField{
+			Id:    key,
 			Value: value,
 		})
 	}
@@ -162,6 +235,6 @@ func newDealFromReception(reception sql.Reception) Deal {
 	return d
 }
 
-func (c *Deal) Json() ([]byte, error) {
-	return json.Marshal(c)
+func (d *Deal) Json() ([]byte, error) {
+	return json.Marshal(d)
 }
