@@ -74,6 +74,8 @@ func sendMessageToGenerator(msg bx24.Message, generator bx24.Endpoint, target bx
 	switch key {
 	case "client":
 		creating = scheme.GetContactsFromRaw
+	case "reception":
+		creating = scheme.GetDealFromRawAsReception
 	default:
 		err := fmt.Errorf("not define method for key '%s'", string(msg.Key))
 		commitLogMessage(commit{
