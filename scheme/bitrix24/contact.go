@@ -30,6 +30,7 @@ type Contact struct {
 	ConnectionWay         converter.ConnectionWay `json:"UF_CRM_1612972723496"`
 	ThereIsContract       bool                    `json:"UF_CRM_1584964931121"`
 	SendAds               bool                    `json:"UF_CRM_1584970848775"`
+	NotSendAds            bool                    `json:"UF_CRM_1636547489168"`
 	IsInternetClient      bool                    `json:"UF_CRM_1585077731269"`
 	IsOfflineClient       bool                    `json:"UF_CRM_1585077757363"`
 	IsClinicClient        bool                    `json:"UF_CRM_1585077767559"`
