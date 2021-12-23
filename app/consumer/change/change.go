@@ -95,16 +95,27 @@ func sendMessageToGenerator(msg bx24.Message, generator bx24.Endpoint, target bx
 	})
 
 	if response, err := createAndExecRequest("POST", url, rd); err == nil {
+		defer response.Body.Close()
+
 		if response.StatusCode != http.StatusOK {
-			err := fmt.Errorf("bad response from generator")
+
+			content, err := io.ReadAll(response.Body)
+			if err != nil {
+				commitLogMessage(commit{
+					fields:  log.Fields{"key": string(msg.Key), "offset": msg.Offset, "topic": msg.Topic, "value": string(msg.Value), "url": url},
+					message: fmt.Errorf("reading response.%s", err.Error()).Error(),
+					level:   "error",
+				})
+			}
+			err = fmt.Errorf("bad response from generator. Reponse: %s", string(content))
+
 			commitLogMessage(commit{
-				fields:  log.Fields{"key": string(msg.Key), "offset": msg.Offset, "topic": msg.Topic, "value": string(msg.Value)},
+				fields:  log.Fields{"key": string(msg.Key), "offset": msg.Offset, "topic": msg.Topic, "value": string(msg.Value), "url": url},
 				message: err.Error(),
 				level:   "error",
 			})
 			return
 		}
-		defer response.Body.Close()
 
 		commitLogMessage(commit{
 			fields:  log.Fields{"key": string(msg.Key), "offset": msg.Offset, "topic": msg.Topic, "value": string(msg.Value)},
