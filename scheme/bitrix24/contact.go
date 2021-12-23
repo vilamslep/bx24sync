@@ -102,6 +102,10 @@ func (c Contact) Add(restUrl string) (response BitrixRestResponse, err error) {
 	}
 }
 
+//TODO Fix error
+//response for update entity is different from add and find.
+//If response for adding and finding has entity ID, but response for updating has bool in result
+//And json encoder can't serialize it
 func (c Contact) Update(restUrl string, id string) (response BitrixRestResponse, err error) {
 	if restUrl[len(restUrl)-1:] == "/" {
 		restUrl = restUrl[:len(restUrl)-1]
