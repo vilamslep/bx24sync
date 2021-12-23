@@ -30,7 +30,6 @@ type Contact struct {
 	ConnectionWay         converter.ConnectionWay `json:"UF_CRM_1612972723496"`
 	ThereIsContract       bool                    `json:"UF_CRM_1584964931121"`
 	SendAds               bool                    `json:"UF_CRM_1584970848775"`
-	NotSendAds            bool                    `json:"UF_CRM_1636547489168"`
 	IsInternetClient      bool                    `json:"UF_CRM_1585077731269"`
 	IsOfflineClient       bool                    `json:"UF_CRM_1585077757363"`
 	IsClinicClient        bool                    `json:"UF_CRM_1585077767559"`
@@ -129,6 +128,7 @@ func (c Contact) Update(restUrl string, id string) (response BitrixRestResponse,
 func prepareReader(c Contact) (rd io.Reader, err error) {
 
 	data := make(map[string]Contact)
+	
 	data["fields"] = c
 
 	if content, err := json.Marshal(data); err == nil {
@@ -238,6 +238,7 @@ func newContactFromClient(client sql.Client) Contact {
 func execReq(method string, url string, rd io.Reader) (*http.Response, error) {
 
 	if req, err := http.NewRequest(method, url, rd); err == nil {
+		req.Header.Set("Content-Type", "application/json")
 		client := http.Client{Timeout: time.Second * 300}
 		return client.Do(req)
 	} else {
