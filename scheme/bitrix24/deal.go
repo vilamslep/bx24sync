@@ -176,7 +176,13 @@ func (d Deal) Update(restUrl string, id string) (response BitrixRestResponse, er
 	}
 
 	if res, err := execReq("POST", url, rd); err == nil {
-		return checkResponse(res)
+		response, err := checkResponse(res)
+		if _, ok := err.(*json.UnmarshalTypeError); ok {
+			return response, nil
+		} else {
+			return response, err
+		}
+		
 	} else {
 		return response, err
 	}
@@ -212,26 +218,6 @@ func newDealFromReception(reception sql.Reception) Deal {
 			Value: value,
 		})
 	}
-	// UsersFields []UserField
-
-	// c.transforName(client.Name)
-
-	// c.DiscountMedicalThings = converter.String(client.DiscountMedicalThings).Uint8()
-	// c.DiscountRayban = converter.String(client.DiscountRayban).Uint8()
-	// c.DiscountClinicService = converter.String(client.DiscountClinicService).Uint8()
-
-	// c.Gender = converter.String(client.Gender).GenderCode()
-	// c.ConnectionWay = converter.String(client.ConnectionWay).ConnectionWay()
-
-	// c.ThereIsContract = converter.String(client.ThereIsContract).BinaryTrue()
-	// c.IsOfflineClient = converter.String(client.IsOfflineClient).BinaryTrue()
-	// c.IsInternetClient = converter.String(client.IsInternetClient).BinaryTrue()
-	// c.SendAds = converter.String(client.SendAds).BinaryTrue()
-	// c.IsClinicClient = converter.String(client.IsClinicClient).BinaryTrue()
-
-	// c.Phone = converter.String(client.Phone).ContactDataSlice(";", "PHONE", "WORK")
-	// c.Email = converter.String(client.Email).ContactDataSlice(";", "PHONE", "EMAIL")
-
 	return d
 }
 
