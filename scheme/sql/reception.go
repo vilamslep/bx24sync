@@ -1,8 +1,6 @@
 package sql
 
-import (
-	"encoding/json"
-)
+import "encoding/json"
 
 type Reception struct {
 	Id                string            `json:"id"`
@@ -15,8 +13,6 @@ type Reception struct {
 	UserId            string            `json:"userId"`
 	AdditionnalFields []AdditionalField `json:"usersFields"`
 }
-
-
 
 func ConvertToReception(scheme []Field, data []map[string]string) ([]Reception, error) {
 	res := make([]Reception, 0, len(data))

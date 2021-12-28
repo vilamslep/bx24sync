@@ -40,3 +40,8 @@ func convertAdditionalField(data map[string]string, scheme []Field) (c Additiona
 
 	return c, err
 }
+
+type Segment struct {
+	Type string 
+	Brand string
+}
