@@ -37,6 +37,11 @@ func convertAdditionalField(data map[string]string, scheme []Field) (c Additiona
 	case "8": //ref 
 		c.Value = data["valRef"]
 	}
-
+	
 	return c, err
+}
+
+type Segment struct {
+	Id string 	`json:"id"`
+	Brands []string `json:"brands"`
 }
