@@ -1,13 +1,20 @@
 package bx24sync
 
 import (
+	"fmt"
 	"os"
 	"testing"
 )
 
 func Test_LoadEnv_Success(t *testing.T) {
 
-	if err := LoadEnv(""); err != nil {
+	rmEnv, err := createTestEnvValues()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := LoadEnv("env"); err != nil {
 		t.Error(err)
 	}
 
@@ -51,5 +58,39 @@ func Test_LoadEnv_Success(t *testing.T) {
 		if v != hCheckInput {
 			t.Errorf("Expected value is %s", hCheckInput)
 		}
+	}
+
+	if err := rmEnv(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+
+
+
+func createTestEnvValues() (rm func() error, err error) {
+
+	file := ".env"
+
+	env := make(map[string]string)
+	env["KAFKA_HOST"] = "172.16.10.10"
+	env["KAFKA_PORT"] = "13454"
+	env["KAFKA_TOPIC"] = "changes"
+	env["HTTP_HOST"] = "localhost"
+	env["HTTP_PORT"] = "8002"
+	env["HTTP_CHECK_INPUT"] = "true"
+
+	if f, err := os.OpenFile(file, os.O_CREATE|os.O_WRONLY, 0666); err == nil {
+		defer f.Close()
+
+		for k, v := range env {
+			fmt.Fprintf(f, "%s=%s\n", k, v)
+		}
+		rm := func() error {
+			return os.Remove(file)
+		}
+		return rm, err
+	} else {
+		return nil, err
 	}
 }
