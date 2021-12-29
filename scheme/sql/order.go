@@ -3,10 +3,12 @@ package sql
 import "encoding/json"
 
 type Order struct {
+	Ref                string    `json:"ref"`
 	Id                 string    `json:"originId"`
 	Date               string    `json:"docDate"`
 	Name               string    `json:"name"`
-	Client             string    `json:"client"`
+	ClientId           string    `json:"client"`
+	Client             Client    `json:"clientData,omitempty"`
 	Sum                string    `json:"docSum"`
 	InternetOrderStage string    `json:"internetOrderStage"`
 	Dpp                string    `json:"dpp"`
@@ -33,7 +35,7 @@ type Order struct {
 	Prepaid            string    `json:"prepaid"`
 	Prepayment         string    `json:"prepayment"`
 	Credit             string    `json:"credit"`
-	Segments            []Segment `json:"segment"`
+	Segments           []Segment `json:"segment"`
 }
 
 func ConvertToOrders(scheme []Field, data []map[string]string) ([]Order, error) {
@@ -65,14 +67,14 @@ func (o Order) convert(scheme []Field, data map[string]string) (Order, error) {
 	return o, err
 }
 
-func (o *Order)LoadSegments(segments []map[string]string){
+func (o *Order) LoadSegments(segments []map[string]string) {
 	//ref segment brand
 	unique := make(map[string][]string)
 
 	for _, m := range segments {
 		k, v := m["segment"], m["brand"]
 		if _, ok := unique[k]; !ok {
-			unique[k] = make([]string,0)
+			unique[k] = make([]string, 0)
 		}
 		unique[k] = append(unique[k], v)
 	}

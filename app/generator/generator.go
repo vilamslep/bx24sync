@@ -23,7 +23,9 @@ func Run() (err error) {
 	if err != nil {
 		return err
 	}
-	settingRouter(router, config.CheckInput, db, config.StorageQueryTxt)
+	if err := settingRouter(router, config.CheckInput, db, config.StorageQueryTxt); err != nil {
+		log.Fatalf("can't to setting router. Err: %+v", err)
+	}
 
 	server := &http.Server{
 		Addr:    config.Web.String(),
@@ -62,10 +64,33 @@ func settingRouter(r bx24.Router, enableCheckInput bool, db *sql.DB, queryTextsD
 		return
 	}
 
+	txtOrder, err := getQueryText(fmt.Sprintf("%s/order.sql", queryTextsDir))
+	if err != nil {
+		return
+	}
+
+	txtOrderSegment, err := getQueryText(fmt.Sprintf("%s/order_segments.sql", queryTextsDir))
+	if err != nil {
+		return
+	}
+	
+	txtShipment, err := getQueryText(fmt.Sprintf("%s/shipment.sql", queryTextsDir))
+	if err != nil {
+		return
+	}
+
+	txtShipmentSegment, err := getQueryText(fmt.Sprintf("%s/shipment_segments.sql", queryTextsDir))
+	if err != nil {
+		return
+	}
 	textsQuery := map[string]string{
 		"client":               string(txtCl),
 		"reception":            string(txtRecept),
 		"reception_propertyes": string(txtReceptProp),
+		"order" : string(txtOrder),
+		"order_segments": string(txtOrderSegment),
+		"shipment": string(txtShipment),
+		"shipment_segments": string(txtShipmentSegment),
 	}
 
 	r.AddMethod(

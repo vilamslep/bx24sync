@@ -6,7 +6,7 @@ DECLARE @docType VARCHAR(20)
 
 SELECT @yearsOffset = offset FROM dbo._YearOffset
 
-SET @order = ${order}
+SET @order = ${order} 
 SET @docType = 'Заказ клиента'
 
 SELECT 
@@ -17,7 +17,8 @@ FROM dbo._Reference18202_VT18230 _bx24User
 WHERE NOT _bx24User._Fld18234RRef = 0x00000000000000000000000000000000
 
 SELECT
-	_order._IDRRef as ref,
+	_order._IDRRef as id,
+	CONVERT(VARCHAR(40),_order._IDRRef,2) as ref,
 	LOWER( 
 		CONCAT(
 			SUBSTRING(CONVERT(VARCHAR(40),_order._IDRRef,2),25,8), 
@@ -29,15 +30,7 @@ SELECT
 	) AS originId,
 	FORMAT(_order._Date_Time, 'dd.MM.yyyy', 'ru-RU') as docDate,
 	CONCAT(@docType, ' ', _order._Number) as name,
-	LOWER(
-		CONCAT(
-			SUBSTRING(CONVERT(VARCHAR(40), _order._Fld7829RRef,2),25,8), 
-			'-', SUBSTRING(CONVERT(VARCHAR(40),_order._Fld7829RRef,2),21,4),
-			'-', SUBSTRING(CONVERT(VARCHAR(40),_order._Fld7829RRef,2),17,4),
-			'-', SUBSTRING(CONVERT(VARCHAR(40),_order._Fld7829RRef,2),1,4), 
-			'-', SUBSTRING(CONVERT(VARCHAR(40),_order._Fld7829RRef,2),5 , 12)
-			)
-	) client,
+	CONVERT(VARCHAR(40),_order._Fld7829RRef,2) as client,
 	_order._Fld7835 as docSum,
 	_internetOrderStage._EnumOrder+1 as internetOrderStage,
 	_order._Fld7892 as dpp,
@@ -65,28 +58,29 @@ SELECT
 INTO #orders
 FROM dbo._Document367 _order WITH(NOLOCK)
 LEFT OUTER JOIN dbo._Enum17526 _internetOrderStage WITH(NOLOCK)
-ON _order._Fld17528RRef = _internetOrderStage._IDRRef
+	ON _order._Fld17528RRef = _internetOrderStage._IDRRef
 LEFT OUTER JOIN dbo._Reference17525 _pickUpPoint WITH(NOLOCK)
-ON (_order._Fld17530RRef = _pickUpPoint._IDRRef)
+	ON (_order._Fld17530RRef = _pickUpPoint._IDRRef)
 LEFT OUTER JOIN dbo._Enum17897 _orderType WITH(NOLOCK)
-ON _order._Fld17898RRef = _orderType._IDRRef
+	ON _order._Fld17898RRef = _orderType._IDRRef
 LEFT OUTER JOIN dbo._Enum651 _deliveryWay WITH(NOLOCK)
-ON _order._Fld7874RRef = _deliveryWay._IDRRef
+	ON _order._Fld7874RRef = _deliveryWay._IDRRef
 LEFT OUTER JOIN dbo._Reference231 _agreement WITH(NOLOCK)
-ON (_order._Fld7832RRef = _agreement._IDRRef)
+	ON (_order._Fld7832RRef = _agreement._IDRRef)
 LEFT OUTER JOIN dbo._Reference297 _stock WITH(NOLOCK)
-ON (_order._Fld7838RRef = _stock._IDRRef)
+	ON (_order._Fld7838RRef = _stock._IDRRef)
 LEFT OUTER JOIN dbo._Reference102 _deliveryArea WITH(NOLOCK)
-ON (_order._Fld7876RRef = _deliveryArea._IDRRef)
+	ON (_order._Fld7876RRef = _deliveryArea._IDRRef)
 LEFT OUTER JOIN dbo._Reference265 _person
-ON (_order._Fld7891RRef = _person._IDRRef)
+	ON (_order._Fld7891RRef = _person._IDRRef)
 LEFT OUTER JOIN #bx24Users as _bx24User WITH(NOLOCK)
-ON (_order._Fld7840RRef = _bx24User.oneCUser)
+	ON (_order._Fld7840RRef = _bx24User.oneCUser)
 LEFT OUTER JOIN dbo._Reference244 _department WITH(NOLOCK)
-ON (_order._Fld7870RRef = _department._IDRRef)
+	ON (_order._Fld7870RRef = _department._IDRRef)
 LEFT OUTER JOIN dbo._Reference244 _departmentParent WITH(NOLOCK)
-ON (_department._ParentIDRRef = _departmentParent._IDRRef)
+	ON (_department._ParentIDRRef = _departmentParent._IDRRef)
 WHERE _order._IDRRef = @order
+
 SELECT
 	_paymentSchedules._Document367_IDRRef as ref,
 	_paymentSchedules._Fld7928RRef as paymentOption,
@@ -94,13 +88,9 @@ SELECT
 INTO #paymentSchedules
 FROM #orders _order WITH(NOLOCK)
 LEFT OUTER JOIN dbo._Document367_VT7926 _paymentSchedules WITH(NOLOCK)
-ON ((_order.ref = _paymentSchedules._Document367_IDRRef)) 
+	ON ((_order.id = _paymentSchedules._Document367_IDRRef)) 
 
-SELECT
-	t1.ref,
-	t1.paymentSum as prepaid,
-	CAST(0.0 AS NUMERIC(15, 2)) as prepayment,
-	CAST(0.0 AS NUMERIC(15, 2)) as credit
+SELECT t1.ref, t1.paymentSum as prepaid, CAST(0.0 AS NUMERIC(15, 2)) as prepayment, CAST(0.0 AS NUMERIC(15, 2)) as credit
 INTO #paymentByKind
 FROM #paymentSchedules t1 WITH(NOLOCK)
 WHERE (t1.paymentOption= 0x94C1BD2F840B2F7C4145EA35E822F82C)
@@ -142,7 +132,7 @@ SELECT
 FROM
 	#orders t1
 	LEFT OUTER JOIN #schedules t2
-		ON t1.ref = t2.ref
+		ON t1.id = t2.ref
 
 DROP TABLE #bx24Users
 DROP TABLE #schedules

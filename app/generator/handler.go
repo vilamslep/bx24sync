@@ -85,13 +85,17 @@ func HandlerReceptionWithDatabaseConnection(executeQuery bx24.Execute) bx24.Hand
 
 			if repections, err := schemes.ConvertToReception(scheme, data); err == nil {
 
-				repections, err = setClient(repections, executeQuery)
+				repections, err = setClientReception(repections, executeQuery)
 
-				if err != nil { return writeServerError(w, err) }
+				if err != nil {
+					return writeServerError(w, err)
+				}
 
 				repections, err = setPropertyes(repections, executeQuery)
 
-				if err != nil { return writeServerError(w, err) }
+				if err != nil {
+					return writeServerError(w, err)
+				}
 
 				content, err := json.Marshal(repections)
 				if err != nil {
@@ -112,10 +116,59 @@ func HandlerReceptionWithDatabaseConnection(executeQuery bx24.Execute) bx24.Hand
 
 func HandlerOrderWithDatabaseConnection(executeQuery bx24.Execute) bx24.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) error {
-		defer r.Body.Close()
+		body, err := ioutil.ReadAll(r.Body)
 
-		writeResponse(w, http.StatusForbidden, nil)
-		return nil
+		if err != nil {
+			return writeBadRequests(w, err, []byte("Don't manage to get body"))
+		}
+
+		id := "0x" + strings.ToUpper(string(body)[46:78])
+
+		args := map[string]string{
+			"${order}": id,
+		}
+
+		if data, err := executeQuery(args, "order"); err == nil {
+
+			rd, err := os.OpenFile("order.json", os.O_RDONLY, 0666)
+
+			if err != nil {
+				return writeServerError(w, err)
+			}
+
+			scheme, err := schemes.CreateScheme(bufio.NewReader(rd))
+
+			if err != nil {
+				return writeServerError(w, err)
+			}
+
+			if orders, err := schemes.ConvertToOrders(scheme, data); err == nil {
+
+				orders, err = setClientOrders(orders, executeQuery)
+
+				if err != nil {
+					return writeServerError(w, err)
+				}
+
+				orders, err = setSegments(orders, executeQuery)
+
+				if err != nil {
+					return writeServerError(w, err)
+				}
+
+				content, err := json.Marshal(orders)
+				if err != nil {
+					return writeServerError(w, err)
+				}
+				w.Write(content)
+
+			} else {
+				return writeServerError(w, err)
+			}
+		} else {
+			return writeServerError(w, err)
+		}
+		return err
 	}
 }
 
@@ -143,7 +196,7 @@ func writeResponse(w http.ResponseWriter, status int, msg []byte) {
 	w.Write(msg)
 }
 
-func setClient(res []schemes.Reception, executeQuery bx24.Execute) ([]schemes.Reception, error) {
+func setClientReception(res []schemes.Reception, executeQuery bx24.Execute) ([]schemes.Reception, error) {
 	result := make([]schemes.Reception, 0, len(res))
 
 	rd, err := os.OpenFile("client.json", os.O_RDONLY, 0666)
@@ -181,6 +234,69 @@ func setClient(res []schemes.Reception, executeQuery bx24.Execute) ([]schemes.Re
 		result = append(result, reception)
 	}
 	return result, err
+}
+
+func setClientOrders(res []schemes.Order, executeQuery bx24.Execute) ([]schemes.Order, error) {
+	result := make([]schemes.Order, 0, len(res))
+
+	rd, err := os.OpenFile("client.json", os.O_RDONLY, 0666)
+	if err != nil {
+		return nil, err
+	}
+
+	scheme, err := schemes.CreateScheme(rd)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, order := range res {
+
+		id := fmt.Sprintf("0x%s", order.ClientId)
+
+		args := map[string]string{
+			"${client}": id,
+		}
+
+		data, err := executeQuery(args, "client")
+
+		if res, err := schemes.ConvertToClients(scheme, data); err == nil {
+			if len(res) > 0 {
+				order.Client = res[0]
+			}
+		} else {
+			return nil, err
+		}
+
+		if err != nil {
+			return nil, err
+		}
+
+		result = append(result, order)
+	}
+	return result, err
+}
+
+func setSegments(res []schemes.Order, executeQuery bx24.Execute) ([]schemes.Order, error) {
+	result := make([]schemes.Order, 0, len(res))
+
+	for _, order := range res {
+
+		id := fmt.Sprintf("0x%s", order.Ref)
+
+		args := map[string]string{
+			"${order}": id,
+		}
+
+		if data, err := executeQuery(args, "order_segments"); err == nil {
+			order.LoadSegments(data)
+		} else {
+			return nil, err
+		}
+
+		result = append(result, order)
+
+	}
+	return result, nil
 }
 
 func setPropertyes(res []schemes.Reception, executeQuery bx24.Execute) ([]schemes.Reception, error) {

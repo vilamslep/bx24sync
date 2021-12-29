@@ -376,11 +376,11 @@ ON t2._Fld7898RRef = t4._IDRRef
 LEFT OUTER JOIN dbo._Reference123 t5 WITH(NOLOCK)
 ON t4._Fld6410RRef = t5._IDRRef
 
-select 
+SELECT
 	_segment.ref,
-	cast(_segment.segment as int) as segment,
+	CAST(_segment.segment AS INT) AS segment,
 	_segment.brand
-from #segments as _segment
+FROM #segments AS _segment
 
 DROP TABLE #segments
 DROP TABLE #tpresentsGrps
