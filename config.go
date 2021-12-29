@@ -14,7 +14,7 @@ type Socket struct {
 
 func (s Socket) String() string {
 	if s.Port == 0 {
-		return fmt.Sprintf("%s", s.Host)	
+		return s.Host	
 	}
 	return fmt.Sprintf("%s:%d", s.Host, s.Port)
 }
