@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/vi-la-muerto/bx24sync/scheme/bitrix24/converter"
 	"github.com/vi-la-muerto/bx24sync/scheme/sql"
@@ -17,21 +18,28 @@ const (
 )
 
 type Deal struct {
-	Id          string  `json:"ORIGIN_ID"`
-	Name        string  `json:"NAME"`
-	User        int     `json:"ASSIGNED_BY_ID"`
-	Date        string  `json:"BEGINDATE"`
-	Category    int     `json:"CATEGORY_ID"`
-	ContactData Contact `json:"ContactData"`
-	ContactId   int     `json:"CONTACT_ID"`
-	Sum         float32 `json:"OPPORTUNITY"`
-	Stage       string  `json:"STAGE_ID"`
-	UsersFields []UserField
+	Id               string  `json:"ORIGIN_ID"`
+	Name             string  `json:"NAME"`
+	User             int     `json:"ASSIGNED_BY_ID"`
+	Date             string  `json:"BEGINDATE"`
+	Category         int     `json:"CATEGORY_ID"`
+	ContactData      Contact `json:"ContactData"`
+	ContactId        int     `json:"CONTACT_ID"`
+	Sum              float32 `json:"OPPORTUNITY"`
+	Stage            string  `json:"STAGE_ID"`
+	Comment          string  `json:"COMMENTS"`
+	UsersFields      []UserField
+	UserFieldsPlurar []UserFiledPlurarValue
 }
 
 type UserField struct {
 	Id    string
 	Value string
+}
+
+type UserFiledPlurarValue struct {
+	Id    string
+	Value []string
 }
 
 func NewDealFromJson(raw []byte) (deal Deal, err error) {
@@ -56,6 +64,36 @@ func GetDealFromRawAsReception(reader io.Reader) (data [][]byte, err error) {
 	for _, reception := range reseptions {
 
 		deal := newDealFromReception(reception)
+
+		if result, err := deal.Json(); err == nil {
+			data = append(data, result)
+		} else {
+			return data, err
+		}
+	}
+
+	return data, err
+}
+
+func GetDealFromRawAsOrder(reader io.Reader) (data [][]byte, err error) {
+	content, err := io.ReadAll(reader)
+	if err != nil {
+		return data, err
+	}
+
+	orders := make([]sql.Order, 0)
+
+	err = json.Unmarshal(content, &orders)
+
+	if err != nil {
+		return
+	}
+	for _, order := range orders {
+
+		deal, err := newDealFromOrder(order)
+		if err != nil {
+			return nil, err
+		}
 
 		if result, err := deal.Json(); err == nil {
 			data = append(data, result)
@@ -149,6 +187,9 @@ func prepareDeal(d Deal) (rd io.Reader, err error) {
 		deal[v.Id] = v.Value
 	}
 
+	for _, v := range d.UserFieldsPlurar {
+		deal[v.Id] = fmt.Sprintf("[%s]", strings.Join(v.Value, ","))
+	}
 	data["fields"] = deal
 
 	if content, err := json.Marshal(data); err == nil {
@@ -182,7 +223,7 @@ func (d Deal) Update(restUrl string, id string) (response BitrixRestResponse, er
 		} else {
 			return response, err
 		}
-		
+
 	} else {
 		return response, err
 	}
@@ -219,6 +260,189 @@ func newDealFromReception(reception sql.Reception) Deal {
 		})
 	}
 	return d
+}
+
+func newDealFromOrder(order sql.Order) (Deal, error) {
+
+	d := Deal{}
+
+	offset := 2000
+
+	d.Id = order.Id
+	d.Name = order.Name
+	d.User = converter.String(order.UserId).Int()
+	d.Date = converter.SubtractionYearsOffset(order.Date, offset, "02.01.2006")
+
+	isInternetOrder := converter.String(order.InternetOrder).BinaryTrue()
+
+	d.Category = converter.GetCategoryInOrder(order.OrderType, isInternetOrder)
+
+	d.ContactData = newContactFromClient(order.Client)
+
+	if isInternetOrder {
+		if stg, err := converter.GetInternetOrderStage(order.InternetOrderStage); err == nil {
+			d.Stage = stg
+		} else {
+			return d, err
+		}
+	} else {
+		d.Stage = converter.GetOrderStageByKind(order.OrderType)
+	}
+
+	d.Comment = order.Comment
+	d.Sum = converter.String(order.Sum).Float32()
+
+	d.UsersFields = append(
+		d.UsersFields,
+		UserField{Id: "UF_CRM_1594208144",
+			Value: converter.GetOrderType(order.OrderType),
+		})
+
+	d.UsersFields = append(
+		d.UsersFields,
+		UserField{Id: "UF_CRM_1594208880",
+			Value: order.Dpp,
+		})
+
+	d.UsersFields = append(
+		d.UsersFields,
+		UserField{Id: "UF_CRM_1594209390",
+			Value: order.DppOD,
+		})
+
+	d.UsersFields = append(
+		d.UsersFields,
+		UserField{Id: "UF_CRM_1594209319",
+			Value: order.DppOS,
+		})
+
+	d.UsersFields = append(
+		d.UsersFields,
+		UserField{Id: "UF_CRM_1594209423",
+			Value: order.Department,
+		})
+
+	d.UsersFields = append(
+		d.UsersFields,
+		UserField{Id: "UF_CRM_1594211273",
+			Value: converter.SubtractionYearsOffset(order.ShipmentDate, 2000, "02.01.2006"),
+		})
+
+	d.UsersFields = append(
+		d.UsersFields,
+		UserField{Id: "UF_CRM_1594273942",
+			Value: order.Agreement,
+		})
+
+	d.UsersFields = append(
+		d.UsersFields,
+		UserField{Id: "UF_CRM_1594274024",
+			Value: order.Stock,
+		})
+
+	d.UsersFields = append(
+		d.UsersFields,
+		UserField{Id: "UF_CRM_1589971684",
+			Value: order.Doctor,
+		})
+
+	d.UsersFields = append(
+		d.UsersFields,
+		UserField{Id: "UF_CRM_1594274325",
+			Value: converter.String(order.SentSms).BoolAsString(),
+		})
+
+	d.UsersFields = append(
+		d.UsersFields,
+		UserField{Id: "UF_CRM_1594274114",
+			Value: converter.GetDeliveryType(order.DeliveryWay),
+		})
+
+	d.UsersFields = append(
+		d.UsersFields,
+		UserField{Id: "UF_CRM_1594274276",
+			Value: order.PickUpPoint,
+		})
+
+	d.UsersFields = append(
+		d.UsersFields,
+		UserField{Id: "UF_CRM_1594275086",
+			Value: order.DeliveryAddress,
+		})
+
+	d.UsersFields = append(
+		d.UsersFields,
+		UserField{Id: "UF_CRM_1594275147",
+			Value: converter.SubtractionYearsOffset(order.WantedDateShipment, 2000, "02.01.2006"),
+		})
+
+	d.UsersFields = append(
+		d.UsersFields,
+		UserField{Id: "UF_CRM_1594275197",
+			Value: order.DeliveryArea,
+		})
+
+	d.UsersFields = append(
+		d.UsersFields,
+		UserField{Id: "UF_CRM_1594275243",
+			Value: converter.SubtractionYearsOffset(order.DeliveryTimeFrom, 2000, "02.01.2006T15:04:05"),
+		})
+
+	d.UsersFields = append(
+		d.UsersFields,
+		UserField{Id: "UF_CRM_1594275305",
+			Value: converter.SubtractionYearsOffset(order.DeliveryTimeTo, 2000, "02.01.2006T15:04:05"),
+		})
+
+	d.UsersFields = append(
+		d.UsersFields,
+		UserField{Id: "UF_CRM_1594275360",
+			Value: order.ExtraInfo,
+		})
+
+	d.UsersFields = append(
+		d.UsersFields,
+		UserField{Id: "UF_CRM_1594284459",
+			Value: order.Prepaid,
+		})
+
+	d.UsersFields = append(
+		d.UsersFields,
+		UserField{Id: "UF_CRM_1594284797",
+			Value: order.Prepayment,
+		})
+
+	d.UsersFields = append(
+		d.UsersFields,
+		UserField{Id: "UF_CRM_1594284830",
+			Value: order.Credit,
+		})
+
+	segments := make([]string, 0, len(order.Segments))
+
+	for _, v := range order.Segments {
+		if sg, err := converter.GetBitrixSegment(v.Id); err == nil {
+			segments = append(segments, sg)
+		}
+
+		for _, b := range v.Brands {
+			if fieldName, ok := converter.GetNameBrandFieldNameForSegment(v.Id); ok {
+				d.UsersFields = append(
+					d.UsersFields,
+					UserField{Id: fieldName,
+						Value: b,
+					})
+			}
+		}
+	}
+
+	d.UserFieldsPlurar = append(d.UserFieldsPlurar,
+		UserFiledPlurarValue{
+			Id:    "UF_CRM_1640090278334",
+			Value: segments,
+		})
+
+	return d, nil
 }
 
 func (d *Deal) Json() ([]byte, error) {

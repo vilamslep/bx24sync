@@ -15,6 +15,7 @@ const (
 func (s String) IsBinaryBool() bool {
 	return s == binaryTrue || s == bimaryFalse
 }
+
 func (s String) BinaryTrue() bool {
 	return s == binaryTrue
 }
@@ -37,4 +38,22 @@ func (s String) Int() int {
 	return result
 }
 
+func (s String) Float32() float32 {
+	if tm, err := strconv.ParseFloat(string(s), 32); err != nil {
+		return 0
+	} else {
+		return float32(tm)
+	}
+}
+
+func (s String) BoolAsString() string{
+	if s.IsBinaryBool() {
+		if s.BinaryTrue() {
+			return "true"
+		} else {
+			return "false"
+		}
+	}
+	return "false"
+}
  

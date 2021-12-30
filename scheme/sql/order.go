@@ -30,11 +30,12 @@ type Order struct {
 	DeliveryTimeFrom   string    `json:"deliveryTimeFrom"`
 	DeliveryTimeTo     string    `json:"deliveryTimeTo"`
 	Doctor             string    `json:"doctor"`
-	User               string    `json:"userId"`
+	UserId             string    `json:"userId"`
 	ShipmentDate       string    `json:"shipmentDate"`
 	Prepaid            string    `json:"prepaid"`
 	Prepayment         string    `json:"prepayment"`
 	Credit             string    `json:"credit"`
+	Department         string    `json:"department"`
 	Segments           []Segment `json:"segment"`
 }
 
