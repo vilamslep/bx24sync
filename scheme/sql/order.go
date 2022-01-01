@@ -53,7 +53,6 @@ func ConvertToOrders(scheme []Field, data []map[string]string) ([]Order, error) 
 }
 
 func (o Order) convert(scheme []Field, data map[string]string) (Order, error) {
-
 	if err := checkByScheme(data, scheme); err != nil {
 		return Order{}, err
 	}
@@ -64,7 +63,6 @@ func (o Order) convert(scheme []Field, data map[string]string) (Order, error) {
 	}
 
 	err = json.Unmarshal(content, &o)
-
 	return o, err
 }
 

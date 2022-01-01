@@ -150,7 +150,7 @@ func HandlerOrderWithDatabaseConnection(executeQuery bx24.Execute) bx24.HandlerF
 					return writeServerError(w, err)
 				}
 
-				orders, err = setSegments(orders, executeQuery)
+				orders, err = setOrderSegments(orders, executeQuery)
 
 				if err != nil {
 					return writeServerError(w, err)
@@ -174,10 +174,59 @@ func HandlerOrderWithDatabaseConnection(executeQuery bx24.Execute) bx24.HandlerF
 
 func HandlerShipmentWithDatabaseConnection(executeQuery bx24.Execute) bx24.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) error {
-		defer r.Body.Close()
+		body, err := ioutil.ReadAll(r.Body)
 
-		writeResponse(w, http.StatusForbidden, nil)
-		return nil
+		if err != nil {
+			return writeBadRequests(w, err, []byte("Don't manage to get body"))
+		}
+
+		id := "0x" + strings.ToUpper(string(body)[46:78])
+
+		args := map[string]string{
+			"${shipment}": id,
+		}
+
+		if data, err := executeQuery(args, "shipment"); err == nil {
+			
+			rd, err := os.OpenFile("shipment.json", os.O_RDONLY, 0666)
+
+			if err != nil {
+				return writeServerError(w, err)
+			}
+
+			scheme, err := schemes.CreateScheme(bufio.NewReader(rd))
+
+			if err != nil {
+				return writeServerError(w, err)
+			}
+
+			if shipment, err := schemes.ConvertToShipment(scheme, data); err == nil {
+
+				shipment, err = setClientShipment(shipment, executeQuery)
+
+				if err != nil {	
+					return writeServerError(w, err)
+				}
+
+				shipment, err = setShipmentSegments(shipment, executeQuery)
+
+				if err != nil {
+					return writeServerError(w, err)
+				}
+
+				content, err := json.Marshal(shipment)
+				if err != nil {
+					return writeServerError(w, err)
+				}
+				w.Write(content)
+
+			} else {
+				return writeServerError(w, err)
+			}
+		} else {
+			return writeServerError(w, err)
+		}
+		return err
 	}
 }
 
@@ -276,7 +325,47 @@ func setClientOrders(res []schemes.Order, executeQuery bx24.Execute) ([]schemes.
 	return result, err
 }
 
-func setSegments(res []schemes.Order, executeQuery bx24.Execute) ([]schemes.Order, error) {
+func setClientShipment(res []schemes.Shipment, executeQuery bx24.Execute) ([]schemes.Shipment, error) {
+	result := make([]schemes.Shipment, 0, len(res))
+
+	rd, err := os.OpenFile("client.json", os.O_RDONLY, 0666)
+	if err != nil {
+		return nil, err
+	}
+
+	scheme, err := schemes.CreateScheme(rd)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, shipment := range res {
+
+		id := fmt.Sprintf("0x%s", shipment.ClientId)
+
+		args := map[string]string{
+			"${client}": id,
+		}
+
+		data, err := executeQuery(args, "client")
+
+		if res, err := schemes.ConvertToClients(scheme, data); err == nil {
+			if len(res) > 0 {
+				shipment.Client = res[0]
+			}
+		} else {
+			return nil, err
+		}
+
+		if err != nil {
+			return nil, err
+		}
+
+		result = append(result, shipment)
+	}
+	return result, err
+}
+
+func setOrderSegments(res []schemes.Order, executeQuery bx24.Execute) ([]schemes.Order, error) {
 	result := make([]schemes.Order, 0, len(res))
 
 	for _, order := range res {
@@ -294,6 +383,29 @@ func setSegments(res []schemes.Order, executeQuery bx24.Execute) ([]schemes.Orde
 		}
 
 		result = append(result, order)
+
+	}
+	return result, nil
+}
+
+func setShipmentSegments(res []schemes.Shipment, executeQuery bx24.Execute) ([]schemes.Shipment, error) {
+	result := make([]schemes.Shipment, 0, len(res))
+
+	for _, shipment := range res {
+
+		id := fmt.Sprintf("0x%s", shipment.Ref)
+
+		args := map[string]string{
+			"${shipment}": id,
+		}
+
+		if data, err := executeQuery(args, "shipment_segments"); err == nil {
+			shipment.LoadSegments(data)
+		} else {
+			return nil, err
+		}
+
+		result = append(result, shipment)
 
 	}
 	return result, nil

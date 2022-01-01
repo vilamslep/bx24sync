@@ -3,42 +3,27 @@ package sql
 import "encoding/json"
 
 type Shipment struct {
-	Id                 string `json:"originId"`
-	Date               string `json:"docDate"`
-	Name               string `json:"name"`
-	Client             string `json:"client"`
-	Sum                string `json:"docSum"`
-	InternetOrderStage string `json:"internetOrderStage"`
-	Dpp                string `json:"dpp"`
-	DppOd              string `json:"dppOD"`
-	DppOs              string `json:"dppOS"`
-	PickUpPoint        string `json:"pickUpPoint"`
-	InternetOrder      string `json:"intenterOrder"`
-	SentSms            string `json:"sentSms"`
-	OrderType          string `json:"orderType"`
-	DeliverySum        string `json:"deliverySum"`
-	DeliveryWay        string `json:"deliveryWay"`
-	DeliveryAddress    string `json:"deliveryAddress"`
-	DeliveryArea       string `json:"deliveryArea"`
-	DeliveryTimeFrom   string `json:"deliveryTimeFrom"`
-	DeliveryTimeTo     string `json:"deliveryTimeTo"`
-	WantedDateShipment string `json:"wantedDateShipment"`
-	ExtraInfo          string `json:"extraInfo"`
-	Comment            string `json:"comment"`
-	Agreement          string `json:"agreement"`
-	Stock              string `json:"stock"`
-	Doctor             string `json:"doctor"`
-	Prepaid            string `json:"prepaid"`
-	Prepayment         string `json:"prepayment"`
-	Credit             string `json:"credit"`
-	Segment			  []Segment `json:"segment"` 
+	Ref        string    `json:"ref"`
+	Id         string    `json:"originId"`
+	Name       string    `json:"name"`
+	Date       string    `json:"docDate"`
+	ClientId   string    `json:"client"`
+	Client     Client    `json:"clientData,omitempty"`
+	Sum        string    `json:"docSum"`
+	Department string    `json:"department"`
+	Stock      string    `json:"stock"`
+	Agreement  string    `json:"agreement"`
+	Comment    string    `json:"comment"`
+	Doctor     string    `json:"doctor"`
+	User       string    `json:"userId"`
+	Segments   []Segment `json:"segment"`
 }
 
-func ConvertToShipments(scheme []Field, data []map[string]string) ([]Shipment, error) {
+func ConvertToShipment(scheme []Field, data []map[string]string) ([]Shipment, error) {
 	res := make([]Shipment, 0, len(data))
 
 	for _, v := range data {
-		if s, err := (Shipment{}).Convert(scheme, v); err != nil {
+		if s, err := (Shipment{}).convert(scheme, v); err == nil {
 			res = append(res, s)
 		} else {
 			return nil, err
@@ -47,7 +32,8 @@ func ConvertToShipments(scheme []Field, data []map[string]string) ([]Shipment, e
 	return res, nil
 }
 
-func (s Shipment) Convert(scheme []Field, data map[string]string) (c Shipment, err error) {
+func (s Shipment) convert(scheme []Field, data map[string]string) (Shipment, error) {
+
 	if err := checkByScheme(data, scheme); err != nil {
 		return Shipment{}, err
 	}
@@ -59,6 +45,25 @@ func (s Shipment) Convert(scheme []Field, data map[string]string) (c Shipment, e
 
 	err = json.Unmarshal(content, &s)
 
-	return c, err
+	return s, err
 }
 
+func (s *Shipment) LoadSegments(segments []map[string]string) {
+	unique := make(map[string][]string)
+
+	for _, m := range segments {
+		k, v := m["segment"], m["brand"]
+		if _, ok := unique[k]; !ok {
+			unique[k] = make([]string, 0)
+		}
+		unique[k] = append(unique[k], v)
+	}
+
+	if s.Segments == nil {
+		s.Segments = make([]Segment, 0)
+	}
+
+	for k, v := range unique {
+		s.Segments = append(s.Segments, Segment{Id: k, Brands: v})
+	}
+}
