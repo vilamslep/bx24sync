@@ -105,6 +105,36 @@ func GetDealFromRawAsOrder(reader io.Reader) (data [][]byte, err error) {
 	return data, err
 }
 
+func GetDealFromRawAsShipment(reader io.Reader) (data [][]byte, err error) {
+	content, err := io.ReadAll(reader)
+	if err != nil {
+		return data, err
+	}
+
+	shipments := make([]sql.Shipment, 0)
+
+	err = json.Unmarshal(content, &shipments)
+
+	if err != nil {
+		return
+	}
+	for _, shipment := range shipments {
+
+		deal, err := newDealFromShipment(shipment)
+		if err != nil {
+			return nil, err
+		}
+
+		if result, err := deal.Json(); err == nil {
+			data = append(data, result)
+		} else {
+			return data, err
+		}
+	}
+
+	return data, err
+}
+
 func (d Deal) Find(restUrl string) (response BitrixRestResponse, err error) {
 
 	if restUrl[len(restUrl)-1:] == "/" {
@@ -140,6 +170,36 @@ func (d Deal) Add(restUrl string) (response BitrixRestResponse, err error) {
 
 	if res, err := execReq("POST", url, rd); err == nil {
 		return checkResponse(res)
+	} else {
+		return response, err
+	}
+}
+
+func (d Deal) Update(restUrl string, id string) (response BitrixRestResponse, err error) {
+	if restUrl[len(restUrl)-1:] == "/" {
+		restUrl = restUrl[:len(restUrl)-1]
+	}
+
+	url := fmt.Sprintf("%s/%s?id=%s", restUrl, updateDeal, id)
+
+	err = d.checkContact(restUrl)
+	if err != nil {
+		return
+	}
+
+	rd, err := prepareDeal(d)
+	if err != nil {
+		return
+	}
+
+	if res, err := execReq("POST", url, rd); err == nil {
+		response, err := checkResponse(res)
+		if _, ok := err.(*json.UnmarshalTypeError); ok {
+			return response, nil
+		} else {
+			return response, err
+		}
+
 	} else {
 		return response, err
 	}
@@ -196,36 +256,6 @@ func prepareDeal(d Deal) (rd io.Reader, err error) {
 		return bytes.NewReader(content), err
 	} else {
 		return rd, err
-	}
-}
-
-func (d Deal) Update(restUrl string, id string) (response BitrixRestResponse, err error) {
-	if restUrl[len(restUrl)-1:] == "/" {
-		restUrl = restUrl[:len(restUrl)-1]
-	}
-
-	url := fmt.Sprintf("%s/%s?id=%s", restUrl, updateDeal, id)
-
-	err = d.checkContact(restUrl)
-	if err != nil {
-		return
-	}
-
-	rd, err := prepareDeal(d)
-	if err != nil {
-		return
-	}
-
-	if res, err := execReq("POST", url, rd); err == nil {
-		response, err := checkResponse(res)
-		if _, ok := err.(*json.UnmarshalTypeError); ok {
-			return response, nil
-		} else {
-			return response, err
-		}
-
-	} else {
-		return response, err
 	}
 }
 
@@ -421,6 +451,83 @@ func newDealFromOrder(order sql.Order) (Deal, error) {
 	segments := make([]string, 0, len(order.Segments))
 
 	for _, v := range order.Segments {
+		if sg, err := converter.GetBitrixSegment(v.Id); err == nil {
+			segments = append(segments, sg)
+		}
+
+		for _, b := range v.Brands {
+			if fieldName, ok := converter.GetNameBrandFieldNameForSegment(v.Id); ok {
+				d.UsersFields = append(
+					d.UsersFields,
+					UserField{Id: fieldName,
+						Value: b,
+					})
+			}
+		}
+	}
+
+	d.UserFieldsPlurar = append(d.UserFieldsPlurar,
+		UserFiledPlurarValue{
+			Id:    "UF_CRM_1640090278334",
+			Value: segments,
+		})
+
+	return d, nil
+}
+
+func newDealFromShipment(shipment sql.Shipment) (Deal, error) {
+
+	d := Deal{}
+
+	offset := 2000
+
+	d.Id = shipment.Id
+	d.Name = shipment.Name
+	d.User = converter.String(shipment.User).Int()
+	d.Date = converter.SubtractionYearsOffset(shipment.Date, offset, "02.01.2006")
+
+	d.Category = 7
+
+	d.ContactData = newContactFromClient(shipment.Client)
+
+	d.Stage = "C7:WON"
+
+	d.Comment = shipment.Comment
+	d.Sum = converter.String(shipment.Sum).Float32()
+
+	d.UsersFields = append(
+		d.UsersFields,
+		UserField{Id: "UF_CRM_1594208144",
+			Value: converter.GetOrderType("1"),
+		})
+
+	d.UsersFields = append(
+		d.UsersFields,
+		UserField{Id: "UF_CRM_1594209423",
+			Value: shipment.Department,
+		})
+
+	d.UsersFields = append(
+		d.UsersFields,
+		UserField{Id: "UF_CRM_1594273942",
+			Value: shipment.Agreement,
+		})
+
+	d.UsersFields = append(
+		d.UsersFields,
+		UserField{Id: "UF_CRM_1594274024",
+			Value: shipment.Stock,
+		})
+
+	d.UsersFields = append(
+		d.UsersFields,
+		UserField{Id: "UF_CRM_1589971684",
+			Value: shipment.Doctor,
+		})
+
+	segments := make([]string, 0, len(shipment.Segments))
+
+	for _, v := range shipment.Segments {
 		if sg, err := converter.GetBitrixSegment(v.Id); err == nil {
 			segments = append(segments, sg)
 		}
