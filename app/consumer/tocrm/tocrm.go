@@ -78,6 +78,15 @@ func sendToCrm(msg bx24.Message, target bx24.Endpoint) {
 			return
 		}
 	case "shipment":
+		entity, err = scheme.NewDealFromJson(msg.Value)
+		if err != nil {
+			commitLogMessage(commit{
+				fields:  log.Fields{"key": string(msg.Key), "offset": msg.Offset, "topic": msg.Topic, "value": string(msg.Value)},
+				message: err.Error(),
+				level:   "error",
+			})
+			return
+		}
 	case "reception":
 		entity, err = scheme.NewDealFromJson(msg.Value)
 		if err != nil {
