@@ -1,4 +1,4 @@
-package producer
+package main
 
 import (
 	"context"
@@ -11,10 +11,15 @@ import (
 	"time"
 
 	bx24 "github.com/vi-la-muerto/bx24sync"
-	"github.com/vi-la-muerto/bx24sync/app"
 )
 
-func Run() (err error) {
+func main() {
+	if err := run(); err != nil {
+		log.Fatalf("execution error %v", err)
+	}
+}
+
+func run() (err error) {
 
 	config := bx24.NewRegistrarConfigFromEnv()
 
@@ -65,28 +70,28 @@ func settingRouter(r bx24.Router, enableCheckInput bool, kw *bx24.KafkaWriter) {
 	var checkInputFunc bx24.CheckInput = nil
 
 	if enableCheckInput {
-		checkInputFunc = app.DefaultCheckInput
+		checkInputFunc = bx24.DefaultCheckInput
 	}
 
 	allowsMethods := []string{"POST"}
 
 	r.AddMethod(
 		bx24.NewHttpMethod(
-			"/client", app.DefaultHandler(kw, "client"),
+			"/client", bx24.DefaultHandler(kw, "client"),
 			checkInputFunc, allowsMethods))
 
 	r.AddMethod(
 		bx24.NewHttpMethod(
-			"/order", app.DefaultHandler(kw, "order"),
+			"/order", bx24.DefaultHandler(kw, "order"),
 			checkInputFunc, allowsMethods))
 
 	r.AddMethod(
 		bx24.NewHttpMethod(
-			"/shipment", app.DefaultHandler(kw, "shipment"),
+			"/shipment", bx24.DefaultHandler(kw, "shipment"),
 			checkInputFunc, allowsMethods))
 
 	r.AddMethod(
 		bx24.NewHttpMethod(
-			"/reception", app.DefaultHandler(kw, "reception"),
+			"/reception", bx24.DefaultHandler(kw, "reception"),
 			checkInputFunc, allowsMethods))
 }

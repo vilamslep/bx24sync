@@ -1,4 +1,4 @@
-package app
+package bx24sync
 
 
 import(

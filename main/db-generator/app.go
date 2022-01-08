@@ -1,4 +1,4 @@
-package generator
+package main
 
 import (
 	"database/sql"
@@ -8,11 +8,17 @@ import (
 	"os"
 
 	bx24 "github.com/vi-la-muerto/bx24sync"
-	"github.com/vi-la-muerto/bx24sync/app"
-	"github.com/vi-la-muerto/bx24sync/app/generator/mssql"
+	sqlI "github.com/vi-la-muerto/bx24sync/sql"
+	mssql "github.com/vi-la-muerto/bx24sync/sql/mssql"
 )
 
-func Run() (err error) {
+func main() {
+	if err := run(); err != nil {
+		log.Fatalf("execution error %v", err)
+	}
+}
+
+func run() (err error) {
 
 	config := bx24.NewGeneratorConfigFromEnv()
 
@@ -44,7 +50,7 @@ func settingRouter(r bx24.Router, enableCheckInput bool, db *sql.DB, queryTextsD
 	var checkInputFunc bx24.CheckInput = nil
 
 	if enableCheckInput {
-		checkInputFunc = app.DefaultCheckInput
+		checkInputFunc = bx24.DefaultCheckInput
 	}
 
 	allowsMethods := []string{"POST"}
@@ -73,7 +79,7 @@ func settingRouter(r bx24.Router, enableCheckInput bool, db *sql.DB, queryTextsD
 	if err != nil {
 		return
 	}
-	
+
 	txtShipment, err := getQueryText(fmt.Sprintf("%s/shipment.sql", queryTextsDir))
 	if err != nil {
 		return
@@ -87,16 +93,16 @@ func settingRouter(r bx24.Router, enableCheckInput bool, db *sql.DB, queryTextsD
 		"client":               string(txtCl),
 		"reception":            string(txtRecept),
 		"reception_propertyes": string(txtReceptProp),
-		"order" : string(txtOrder),
-		"order_segments": string(txtOrderSegment),
-		"shipment": string(txtShipment),
-		"shipment_segments": string(txtShipmentSegment),
+		"order":                string(txtOrder),
+		"order_segments":       string(txtOrderSegment),
+		"shipment":             string(txtShipment),
+		"shipment_segments":    string(txtShipmentSegment),
 	}
 
 	r.AddMethod(
 		bx24.HttpMethod{
 			Path:         "/client",
-			Handler:      HandlerClientWithDatabaseConnection(bx24.ExecuteQuery(db, textsQuery)),
+			Handler:      HandlerClientWithDatabaseConnection(sqlI.ExecuteQuery(db, textsQuery)),
 			CheckInput:   checkInputFunc,
 			AllowMethods: allowsMethods,
 		})
@@ -104,7 +110,7 @@ func settingRouter(r bx24.Router, enableCheckInput bool, db *sql.DB, queryTextsD
 	r.AddMethod(
 		bx24.HttpMethod{
 			Path:         "/reception",
-			Handler:      HandlerReceptionWithDatabaseConnection(bx24.ExecuteQuery(db, textsQuery)),
+			Handler:      HandlerReceptionWithDatabaseConnection(sqlI.ExecuteQuery(db, textsQuery)),
 			CheckInput:   checkInputFunc,
 			AllowMethods: allowsMethods,
 		})
@@ -112,7 +118,7 @@ func settingRouter(r bx24.Router, enableCheckInput bool, db *sql.DB, queryTextsD
 	r.AddMethod(
 		bx24.HttpMethod{
 			Path:         "/order",
-			Handler:      HandlerOrderWithDatabaseConnection(bx24.ExecuteQuery(db, textsQuery)),
+			Handler:      HandlerOrderWithDatabaseConnection(sqlI.ExecuteQuery(db, textsQuery)),
 			CheckInput:   checkInputFunc,
 			AllowMethods: allowsMethods,
 		})
@@ -120,7 +126,7 @@ func settingRouter(r bx24.Router, enableCheckInput bool, db *sql.DB, queryTextsD
 	r.AddMethod(
 		bx24.HttpMethod{
 			Path:         "/shipment",
-			Handler:      HandlerShipmentWithDatabaseConnection(bx24.ExecuteQuery(db, textsQuery)),
+			Handler:      HandlerShipmentWithDatabaseConnection(sqlI.ExecuteQuery(db, textsQuery)),
 			CheckInput:   checkInputFunc,
 			AllowMethods: allowsMethods,
 		})

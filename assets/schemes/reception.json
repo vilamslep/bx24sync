@@ -1,0 +1,30 @@
+[
+    {
+        "Key": "id",
+        "Required": true
+    },
+    {
+        "Key": "originId",
+        "Required": true
+    },
+    {
+        "Key": "name",
+        "Required": true
+    },
+    {
+        "Key": "date",
+        "Required": true
+    },
+    {
+        "Key": "client",
+        "Required": true
+    },
+    {
+        "Key": "department",
+        "Required": true
+    },
+    {
+        "Key": "userId",
+        "Required": true
+    }
+]

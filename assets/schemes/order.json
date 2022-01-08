@@ -1,0 +1,126 @@
+[
+    {
+        "Key": "originId",
+        "Required": true
+    },
+    {
+        "Key": "docDate",
+        "Required": true
+    },
+    {
+        "Key": "name",
+        "Required": true
+    },
+    {
+        "Key": "client",
+        "Required": true
+    },
+    {
+        "Key": "docSum",
+        "Required": true
+    },
+    {
+        "Key": "internetOrderStage",
+        "Required": true
+    },
+    {
+        "Key": "dpp",
+        "Required": true
+    },
+    {
+        "Key": "dppOD",
+        "Required": true
+    },
+    {
+        "Key": "dppOS",
+        "Required": true
+    },
+    {
+        "Key": "pickupPoint",
+        "Required": true
+    },
+    {
+        "Key": "internetOrder",
+        "Required": true
+    },
+    {
+        "Key": "sentSms",
+        "Required": true
+    },
+    {
+        "Key": "orderType",
+        "Required": true
+    },
+    {
+        "Key": "deliverySum",
+        "Required": true
+    },
+    {
+        "Key": "deliveryWay",
+        "Required": true
+    },
+    {
+        "Key": "wantedDateShipment",
+        "Required": true
+    },
+    {
+        "Key": "extraInfo",
+        "Required": true
+    },
+    {
+        "Key": "comment",
+        "Required": true
+    },
+    {
+        "Key": "agreement",
+        "Required": true
+    },
+    {
+        "Key": "stock",
+        "Required": true
+    },
+    {
+        "Key": "deliveryAddress",
+        "Required": true
+    },
+    {
+        "Key": "deliveryArea",
+        "Required": true
+    },
+    {
+        "Key": "deliveryTimeFrom",
+        "Required": true
+    },
+    {
+        "Key": "deliveryTimeTo",
+        "Required": true
+    },
+    {
+        "Key": "doctor",
+        "Required": true
+    },
+    {
+        "Key": "userId",
+        "Required": true
+    },
+    {
+        "Key": "shipmentDate",
+        "Required": true
+    },
+    {
+        "Key": "department",
+        "Required": true
+    },
+    {
+        "Key": "prepaid",
+        "Required": true
+    },
+    {
+        "Key": "prepayment",
+        "Required": true
+    },
+    {
+        "Key": "credit",
+        "Required": true
+    }
+]

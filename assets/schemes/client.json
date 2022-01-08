@@ -1,0 +1,78 @@
+[
+    {
+        "Key": "originId",
+        "Required": true
+    },
+    {
+        "Key": "name",
+        "Required": true
+    },
+    {
+        "Key": "birthday",
+        "Required": true
+    },
+    {
+        "Key": "gender",
+        "Required": true
+    },
+    {
+        "Key": "isClient",
+        "Required": true
+    },
+    {
+        "Key": "isSuppler",
+        "Required": true
+    },
+    {
+        "Key": "otherRelation",
+        "Required": true
+    },
+    {
+        "Key": "isRetireeOrDisabledPerson",
+        "Required": true
+    },
+    {
+        "Key": "connectionWay",
+        "Required": true
+    },
+    {
+        "Key": "thereIsContract",
+        "Required": true
+    },
+    {
+        "Key": "sendAds",
+        "Required": true
+    },
+    {
+        "Key": "isInternetClient",
+        "Required": true
+    },
+    {
+        "Key": "isOfflineClient",
+        "Required": true
+    },
+    {
+        "Key": "isClinicClient",
+        "Required": true
+    },
+    {
+        "Key": "discountClinicService",
+        "Required": true
+    },
+    {
+        "Key": "discountMedicalThings",
+        "Required": true
+    },
+    {
+        "Key": "discountRayban",
+        "Required": true
+    },
+    {
+        "Key": "phone",
+        "Required": true
+    },
+    {
+        "Key": "email",
+        "Required": true
+    }
+]

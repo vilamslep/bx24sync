@@ -1,13 +1,11 @@
-package app
+package bx24sync
 
 import (
 	"io"
 	"net/http"
-	bx24 "github.com/vi-la-muerto/bx24sync"
 )
 
-//handler
-func DefaultHandler(writer *bx24.KafkaWriter, key string) func(http.ResponseWriter, *http.Request) error {
+func DefaultHandler(writer *KafkaWriter, key string) func(http.ResponseWriter, *http.Request) error {
 	return func(rw http.ResponseWriter, req *http.Request) error {
 
 		body, err := io.ReadAll(req.Body)
@@ -18,7 +16,7 @@ func DefaultHandler(writer *bx24.KafkaWriter, key string) func(http.ResponseWrit
 			return err
 		}
 
-		msg := bx24.Message{
+		msg := Message{
 			Key:   []byte(key),
 			Value: body,
 		}

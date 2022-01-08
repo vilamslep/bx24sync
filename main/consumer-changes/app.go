@@ -1,4 +1,4 @@
-package change
+package main
 
 import (
 	"bytes"
@@ -20,15 +20,21 @@ type commit struct {
 	level   string
 }
 
-func Run() {
+func main() {
+
 	log.SetFormatter(&log.TextFormatter{
 		ForceColors:   true,
 		FullTimestamp: true,
 	})
 
-	if err := runScanner(); err != nil {
+	if err := run(); err != nil {
 		log.Fatalln(err)
 	}
+}
+
+func run() error {
+
+	return runScanner()
 }
 
 func runScanner() error {

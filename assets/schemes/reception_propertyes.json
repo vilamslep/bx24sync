@@ -1,0 +1,30 @@
+[
+    {
+        "Key": "id",
+        "Required": true
+    },
+    {
+        "Key": "valType",
+        "Required": true
+    },
+    {
+        "Key": "valBool",
+        "Required": true
+    },
+    {
+        "Key": "valDigit",
+        "Required": true
+    },
+    {
+        "Key": "valTime",
+        "Required": true
+    },
+    {
+        "Key": "valStr",
+        "Required": true
+    },
+    {
+        "Key": "valRef",
+        "Required": true
+    }
+]

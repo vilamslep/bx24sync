@@ -1,4 +1,4 @@
-package bx24sync
+package sql
 
 import (
 	"database/sql"
@@ -9,8 +9,8 @@ import (
 type Execute func(params map[string]string, key string) (data []map[string]string, err error)
 
 func ExecuteQuery(db *sql.DB, texts map[string]string) Execute {
-	return func(params map[string]string, key string ) (data []map[string]string, err error) {
-		
+	return func(params map[string]string, key string) (data []map[string]string, err error) {
+
 		if text, ok := texts[key]; ok {
 			for k, v := range params {
 				text = strings.ReplaceAll(text, k, v)

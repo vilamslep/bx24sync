@@ -9,7 +9,7 @@ import (
 )
 
 func GetDatabaseConnection(config bx24sync.DataBaseConnection) (db *sql.DB, err error) {
-	connector, err := mssql.NewConnector( config.MakeConnURL().String() )
+	connector, err := mssql.NewConnector(config.MakeConnURL().String())
 
 	if err != nil {
 		return db, err
@@ -22,5 +22,3 @@ func GetDatabaseConnection(config bx24sync.DataBaseConnection) (db *sql.DB, err 
 
 	return db, err
 }
-
-
