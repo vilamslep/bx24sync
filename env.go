@@ -29,6 +29,7 @@ func load(f *os.File) (err error) {
 	for scanner.Scan() {
 		text := scanner.Text()
 
+		text = strings.TrimSpace(text)
 		envData := strings.Split(text,"=")
 		
 		if len(envData) == 0 {

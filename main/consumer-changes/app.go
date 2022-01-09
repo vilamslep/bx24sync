@@ -21,6 +21,7 @@ type commit struct {
 }
 
 func main() {
+	bx24.LoadEnv(".env")
 
 	log.SetFormatter(&log.TextFormatter{
 		ForceColors:   true,
@@ -174,7 +175,12 @@ func sendMessageToRegistrar(content [][]byte, key string, target bx24.Endpoint) 
 			defer response.Body.Close()
 
 			if response.StatusCode != http.StatusOK {
-				return fmt.Errorf("status code isn't expected. Code %d", response.StatusCode)
+				content, err := io.ReadAll(response.Body)
+
+				if err != nil {
+					return fmt.Errorf("status code %d. Can't read response. %v", response.StatusCode, err)	
+				}
+				return fmt.Errorf("status code isn't expected. Code %d. Response: %s", response.StatusCode, string(content))
 			}
 
 		} else {

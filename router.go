@@ -13,10 +13,10 @@ type CheckInput func(r io.Reader) (bool, error)
 type HandlerFunc func(http.ResponseWriter, *http.Request) error
 
 type Router struct {
-	methods   map[string]*HttpMethod
+	methods     map[string]*HttpMethod
 	needLogBody bool
-	accessLog *log.Logger
-	errorLog  *log.Logger
+	accessLog   *log.Logger
+	errorLog    *log.Logger
 }
 
 func NewRouter(accessLog io.Writer, errorLog io.Writer, enableLoggingBody bool) (r Router) {
@@ -30,7 +30,7 @@ func NewRouter(accessLog io.Writer, errorLog io.Writer, enableLoggingBody bool) 
 	r.accessLog = log.New()
 	r.accessLog.Out = accessLog
 	r.accessLog.SetFormatter(formatter)
-	
+
 	r.errorLog = log.New()
 	r.errorLog.Out = errorLog
 	r.errorLog.SetFormatter(formatter)
@@ -56,10 +56,11 @@ func (r Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 
 		if !r.checkInputEvent(method, &logger, req) {
+			r.addStateRequest(logger.Status(), url.Path, req.RemoteAddr)
 			return
 		}
 
-		if len(method.AllowMethods) != 0  {
+		if len(method.AllowMethods) != 0 {
 			if err := method.Handler(&logger, req); err != nil {
 				r.addLogError(log.Fields{
 					"method": method.Path,
@@ -84,19 +85,19 @@ func (r *Router) addLogBody(req *http.Request) {
 		var buf bytes.Buffer
 		tee := io.TeeReader(req.Body, &buf)
 
-		if body,err := io.ReadAll(tee); err == nil {
+		if body, err := io.ReadAll(tee); err == nil {
 			r.addLogInfo(log.Fields{
-				"method": req.URL.Path,
-				"type" : req.Method,
-				"content" : string(body),
+				"method":  req.URL.Path,
+				"type":    req.Method,
+				"content": string(body),
 			}, "Body")
 		} else {
 			r.addLogError(log.Fields{
 				"method": req.URL.Path,
-				"type": req.Method,
-				"point": "addLogBody",
-				"error": err,
-			},"Adding requests body to log")
+				"type":   req.Method,
+				"point":  "addLogBody",
+				"error":  err,
+			}, "Adding requests body to log")
 		}
 
 		req.Body = io.NopCloser(bytes.NewReader(buf.Bytes()))
@@ -104,7 +105,7 @@ func (r *Router) addLogBody(req *http.Request) {
 	}
 }
 
-func (r *Router) checkInputEvent(method *HttpMethod, w http.ResponseWriter, req *http.Request) (bool) {
+func (r *Router) checkInputEvent(method *HttpMethod, w http.ResponseWriter, req *http.Request) bool {
 	if method.CheckInput != nil {
 		var buf bytes.Buffer
 		tee := io.TeeReader(req.Body, &buf)
@@ -121,7 +122,7 @@ func (r *Router) checkInputEvent(method *HttpMethod, w http.ResponseWriter, req 
 
 			return false
 		} else if !ok {
-			w.WriteHeader(http.StatusBadGateway)
+			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte("Body isn't correctly"))
 
 			return false
@@ -181,9 +182,9 @@ func (m *HttpMethod) checkInput(r io.Reader) (bool, error) {
 
 func NewHttpMethod(path string, handler HandlerFunc, checkInput CheckInput, allowsMethods []string) HttpMethod {
 	return HttpMethod{
-		Path: path,
-		Handler: handler,
-		CheckInput: checkInput,
+		Path:         path,
+		Handler:      handler,
+		CheckInput:   checkInput,
 		AllowMethods: allowsMethods,
 	}
 }

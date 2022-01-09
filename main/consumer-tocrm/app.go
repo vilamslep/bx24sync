@@ -15,6 +15,8 @@ type commit struct {
 }
 
 func main() {
+	bx24.LoadEnv(".env")
+
 	log.SetFormatter(&log.TextFormatter{
 		ForceColors:   true,
 		FullTimestamp: true,
@@ -28,7 +30,6 @@ func main() {
 func run() error {
 
 	return runScanner()
-	
 }
 
 func runScanner() error {
