@@ -83,6 +83,10 @@ func sendMessageToGenerator(msg bx24.Message, generator bx24.Endpoint, target bx
 		creating = scheme.GetContactsFromRaw
 	case "reception":
 		creating = scheme.GetDealFromRawAsReception
+	case "order":
+		creating = scheme.GetDealFromRawAsOrder
+	case "shipment":
+		creating = scheme.GetDealFromRawAsShipment
 	default:
 		err := fmt.Errorf("not define method for key '%s'", string(msg.Key))
 		commitLogMessage(commit{
@@ -178,7 +182,7 @@ func sendMessageToRegistrar(content [][]byte, key string, target bx24.Endpoint) 
 				content, err := io.ReadAll(response.Body)
 
 				if err != nil {
-					return fmt.Errorf("status code %d. Can't read response. %v", response.StatusCode, err)	
+					return fmt.Errorf("status code %d. Can't read response. %v", response.StatusCode, err)
 				}
 				return fmt.Errorf("status code isn't expected. Code %d. Response: %s", response.StatusCode, string(content))
 			}
