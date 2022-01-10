@@ -1,0 +1,46 @@
+[
+    {
+        "Key": "originId",
+        "Required": true
+    },
+    {
+        "Key": "name",
+        "Required": true
+    },
+    {
+        "Key": "docDate",
+        "Required": true
+    },
+    {
+        "Key": "client",
+        "Required": true
+    },
+    {
+        "Key": "docSum",
+        "Required": true
+    },
+    {
+        "Key": "department",
+        "Required": true
+    },
+    {
+        "Key": "stock",
+        "Required": true
+    },
+    {
+        "Key": "agreement",
+        "Required": true
+    },
+    {
+        "Key": "comment",
+        "Required": true
+    },
+    {
+        "Key": "doctor",
+        "Required": true
+    },
+    {
+        "Key": "userId",
+        "Required": true
+    }
+]

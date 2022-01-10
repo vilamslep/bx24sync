@@ -5,3 +5,4 @@ example
 coverage.out.tmp
 coverage.out
 .env
+.vscode
