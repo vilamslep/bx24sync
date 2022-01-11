@@ -48,15 +48,15 @@ type ContactData struct {
 	TypeId    string `json:"TYPE_ID"`
 }
 
-func (s String) ContactDataSlice(sep string, valType string, idType string ) []ContactData {
+func (s String) ContactDataSlice(sep string, valType string, idType string) []ContactData {
 
-	if len(s) == 0 { return nil }
+	if len(s) == 0 {
+		return nil
+	}
 
 	target := make([]ContactData, 0)
 
 	for _, piece := range strings.Split(string(s), sep) {
-		if piece == "" { continue }
-
 		item := ContactData{
 			ValueType: valType,
 			Value:     piece,
@@ -68,7 +68,3 @@ func (s String) ContactDataSlice(sep string, valType string, idType string ) []C
 
 	return target
 }
-
-
-
-
