@@ -309,8 +309,8 @@ SELECT
 		THEN @raybanDiscontValue
 		ELSE 0
 	END AS discountRayban,
-	@phonesummary AS phone,
-	@email AS email
+	ISNULL(@phonesummary,'') AS phone,
+	ISNULL(@email, '') AS email
 FROM
 	#clients AS _client WITH(NOLOCK)
 	LEFT OUTER JOIN #theFirstDocument AS _document WITH(NOLOCK)
