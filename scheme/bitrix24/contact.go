@@ -107,7 +107,7 @@ func (c Contact) Add(restUrl string) (response BitrixRestResponse, err error) {
 //response for update entity is different from add and find.
 //If response for adding and finding has entity ID, but response for updating has bool in result
 //And json encoder can't serialize it
-func (c Contact) Update(restUrl string, id string) (response BitrixRestResponse, err error) {
+func (c Contact) Update(restUrl string, id string) (response BitrixRestResponseUpdate, err error) {
 	if restUrl[len(restUrl)-1:] == "/" {
 		restUrl = restUrl[:len(restUrl)-1]
 	}
@@ -120,7 +120,7 @@ func (c Contact) Update(restUrl string, id string) (response BitrixRestResponse,
 	}
 
 	if res, err := execReq("POST", url, rd); err == nil {
-		return checkResponse(res)
+		return checkResponseUpdate(res)
 	} else {
 		return response, err
 	}
@@ -155,7 +155,28 @@ func checkResponse(res *http.Response) (response BitrixRestResponse, err error) 
 	}
 }
 
+func checkResponseUpdate(res *http.Response) (response BitrixRestResponseUpdate, err error) {
+
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body)
+
+	if res.StatusCode != http.StatusOK {
+		if err != nil {
+			return response, err
+		}
+		return response, fmt.Errorf(fmt.Sprintf("%s: %s", "bad request", string(body)))
+	} else {
+		return fillResponseUpdate(body)
+	}
+}
+
 func fillResponse(bodyRaw []byte) (response BitrixRestResponse, err error) {
+	err = json.Unmarshal(bodyRaw, &response)
+	return response, err
+}
+
+func fillResponseUpdate(bodyRaw []byte) (response BitrixRestResponseUpdate, err error) {
 	err = json.Unmarshal(bodyRaw, &response)
 	return response, err
 }

@@ -160,7 +160,15 @@ func sendToCrm(msg bx24.Message, target bx24.Endpoint) {
 			message: "Update entity",
 			level:   "info",
 		})
-		if _, err := entity.Update(restUrl, id); err != nil {
+		if r, err := entity.Update(restUrl, id); err == nil {
+			if !r.Result {
+				commitLogMessage(commit{
+					fields:  log.Fields{"key": string(msg.Key), "offset": msg.Offset, "topic": msg.Topic, "value": string(msg.Value)},
+					message: "can't to update entity",
+					level:   "error",
+				})
+			}
+		} else {
 			commitLogMessage(commit{
 				fields:  log.Fields{"key": string(msg.Key), "offset": msg.Offset, "topic": msg.Topic, "value": string(msg.Value)},
 				message: err.Error(),

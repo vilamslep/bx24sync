@@ -175,7 +175,7 @@ func (d Deal) Add(restUrl string) (response BitrixRestResponse, err error) {
 	}
 }
 
-func (d Deal) Update(restUrl string, id string) (response BitrixRestResponse, err error) {
+func (d Deal) Update(restUrl string, id string) (response BitrixRestResponseUpdate, err error) {
 	if restUrl[len(restUrl)-1:] == "/" {
 		restUrl = restUrl[:len(restUrl)-1]
 	}
@@ -193,7 +193,7 @@ func (d Deal) Update(restUrl string, id string) (response BitrixRestResponse, er
 	}
 
 	if res, err := execReq("POST", url, rd); err == nil {
-		response, err := checkResponse(res)
+		response, err := checkResponseUpdate(res)
 		if _, ok := err.(*json.UnmarshalTypeError); ok {
 			return response, nil
 		} else {

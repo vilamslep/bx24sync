@@ -5,6 +5,10 @@ type BitrixRestResponse struct {
 	Total  int                `json:"total"`
 }
 
+type BitrixRestResponseUpdate struct {
+	Result bool `json:"result"`
+}
+
 type BitrxiRestResult struct {
 	ID string `json:"ID"`
 }
