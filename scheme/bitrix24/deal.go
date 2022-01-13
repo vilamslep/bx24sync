@@ -193,13 +193,7 @@ func (d Deal) Update(restUrl string, id string) (response BitrixRestResponseUpda
 	}
 
 	if res, err := execReq("POST", url, rd); err == nil {
-		response, err := checkResponseUpdate(res)
-		if _, ok := err.(*json.UnmarshalTypeError); ok {
-			return response, nil
-		} else {
-			return response, err
-		}
-
+		return checkResponseUpdate(res)
 	} else {
 		return response, err
 	}
@@ -214,7 +208,7 @@ func (d *Deal) checkContact(url string) error {
 	if response.Total == 0 {
 		if response, err := d.ContactData.Add(url); err == nil {
 			id := response.Result
-			d.ContactId = converter.String(id).Int()
+			d.ContactId = id
 		} else {
 			return err
 		}
@@ -233,7 +227,7 @@ func prepareDeal(d Deal) (rd io.Reader, err error) {
 	deal := make(map[string]string)
 
 	deal["ORIGIN_ID"] = d.Id
-	deal["NAME"] = d.Name
+	deal["TITLE"] = d.Name
 
 	if d.User != 0 {
 		deal["ASSIGNED_BY_ID"] = fmt.Sprint(d.User)
@@ -250,6 +244,7 @@ func prepareDeal(d Deal) (rd io.Reader, err error) {
 	for _, v := range d.UserFieldsPlurar {
 		deal[v.Id] = fmt.Sprintf("[%s]", strings.Join(v.Value, ","))
 	}
+
 	data["fields"] = deal
 
 	if content, err := json.Marshal(data); err == nil {

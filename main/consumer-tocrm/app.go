@@ -141,11 +141,13 @@ func sendToCrm(msg bx24.Message, target bx24.Endpoint) {
 	})
 
 	if response.Total == 0 {
+
 		commitLogMessage(commit{
 			fields:  log.Fields{"key": string(msg.Key)},
 			message: "Add new entity",
 			level:   "info",
 		})
+		
 		if _, err := entity.Add(restUrl); err != nil {
 			commitLogMessage(commit{
 				fields:  log.Fields{"key": string(msg.Key), "offset": msg.Offset, "topic": msg.Topic, "value": string(msg.Value)},
@@ -154,13 +156,21 @@ func sendToCrm(msg bx24.Message, target bx24.Endpoint) {
 			})
 		}
 	} else {
+
 		id := response.Result[0].ID
 		commitLogMessage(commit{
 			fields:  log.Fields{"key": string(msg.Key), "ID": id},
 			message: "Update entity",
 			level:   "info",
 		})
-		if r, err := entity.Update(restUrl, id); err == nil {
+
+		if r, err := entity.Update(restUrl, id); err != nil {
+			commitLogMessage(commit{
+				fields:  log.Fields{"key": string(msg.Key), "offset": msg.Offset, "topic": msg.Topic, "value": string(msg.Value)},
+				message: err.Error(),
+				level:   "error",
+			})
+		} else {
 			if !r.Result {
 				commitLogMessage(commit{
 					fields:  log.Fields{"key": string(msg.Key), "offset": msg.Offset, "topic": msg.Topic, "value": string(msg.Value)},
@@ -168,12 +178,6 @@ func sendToCrm(msg bx24.Message, target bx24.Endpoint) {
 					level:   "error",
 				})
 			}
-		} else {
-			commitLogMessage(commit{
-				fields:  log.Fields{"key": string(msg.Key), "offset": msg.Offset, "topic": msg.Topic, "value": string(msg.Value)},
-				message: err.Error(),
-				level:   "error",
-			})
 		}
 	}
 

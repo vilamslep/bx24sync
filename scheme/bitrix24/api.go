@@ -10,7 +10,7 @@ type BitrixRestResponseUpdate struct {
 }
 
 type BitrixRestResponseAdd struct {
-	Result string `json:"result"`
+	Result int `json:"result"`
 }
 
 type BitrxiRestResult struct {
