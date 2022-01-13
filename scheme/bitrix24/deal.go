@@ -135,7 +135,7 @@ func GetDealFromRawAsShipment(reader io.Reader) (data [][]byte, err error) {
 	return data, err
 }
 
-func (d Deal) Find(restUrl string) (response BitrixRestResponse, err error) {
+func (d Deal) Find(restUrl string) (response BitrixRestResponseFind, err error) {
 
 	if restUrl[len(restUrl)-1:] == "/" {
 		restUrl = restUrl[:len(restUrl)-1]
@@ -144,13 +144,13 @@ func (d Deal) Find(restUrl string) (response BitrixRestResponse, err error) {
 	url := fmt.Sprintf("%s/%s?filter[ORIGIN_ID]=%s", restUrl, findDeal, d.Id)
 
 	if res, err := execReq("GET", url, nil); err == nil {
-		return checkResponse(res)
+		return checkResponseFind(res)
 	} else {
 		return response, err
 	}
 }
 
-func (d Deal) Add(restUrl string) (response BitrixRestResponse, err error) {
+func (d Deal) Add(restUrl string) (response BitrixRestResponseAdd, err error) {
 
 	if restUrl[len(restUrl)-1:] == "/" {
 		restUrl = restUrl[:len(restUrl)-1]
@@ -169,7 +169,7 @@ func (d Deal) Add(restUrl string) (response BitrixRestResponse, err error) {
 	}
 
 	if res, err := execReq("POST", url, rd); err == nil {
-		return checkResponse(res)
+		return checkResponseAdd(res)
 	} else {
 		return response, err
 	}
@@ -213,7 +213,7 @@ func (d *Deal) checkContact(url string) error {
 
 	if response.Total == 0 {
 		if response, err := d.ContactData.Add(url); err == nil {
-			id := response.Result[0].ID
+			id := response.Result
 			d.ContactId = converter.String(id).Int()
 		} else {
 			return err

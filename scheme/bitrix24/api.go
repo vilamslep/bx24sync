@@ -1,12 +1,16 @@
 package bitrix24
 
-type BitrixRestResponse struct {
+type BitrixRestResponseFind struct {
 	Result []BitrxiRestResult `json:"result"`
 	Total  int                `json:"total"`
 }
 
 type BitrixRestResponseUpdate struct {
 	Result bool `json:"result"`
+}
+
+type BitrixRestResponseAdd struct {
+	Result string `json:"result"`
 }
 
 type BitrxiRestResult struct {

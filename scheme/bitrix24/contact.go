@@ -68,7 +68,7 @@ func NewContactFromJson(raw []byte) (contact Contact, err error) {
 	return contact, err
 }
 
-func (c Contact) Find(restUrl string) (response BitrixRestResponse, err error) {
+func (c Contact) Find(restUrl string) (response BitrixRestResponseFind, err error) {
 
 	if restUrl[len(restUrl)-1:] == "/" {
 		restUrl = restUrl[:len(restUrl)-1]
@@ -77,13 +77,13 @@ func (c Contact) Find(restUrl string) (response BitrixRestResponse, err error) {
 	url := fmt.Sprintf("%s/%s?filter[ORIGIN_ID]=%s", restUrl, findContact, c.Id)
 
 	if res, err := execReq("GET", url, nil); err == nil {
-		return checkResponse(res)
+		return checkResponseFind(res)
 	} else {
 		return response, err
 	}
 }
 
-func (c Contact) Add(restUrl string) (response BitrixRestResponse, err error) {
+func (c Contact) Add(restUrl string) (response BitrixRestResponseAdd, err error) {
 
 	if restUrl[len(restUrl)-1:] == "/" {
 		restUrl = restUrl[:len(restUrl)-1]
@@ -97,7 +97,7 @@ func (c Contact) Add(restUrl string) (response BitrixRestResponse, err error) {
 	}
 
 	if res, err := execReq("POST", url, rd); err == nil {
-		return checkResponse(res)
+		return checkResponseAdd(res)
 	} else {
 		return response, err
 	}
@@ -139,7 +139,7 @@ func prepareReader(c Contact) (rd io.Reader, err error) {
 	}
 }
 
-func checkResponse(res *http.Response) (response BitrixRestResponse, err error) {
+func checkResponseFind(res *http.Response) (response BitrixRestResponseFind, err error) {
 
 	defer res.Body.Close()
 
@@ -151,7 +151,7 @@ func checkResponse(res *http.Response) (response BitrixRestResponse, err error) 
 		}
 		return response, fmt.Errorf(fmt.Sprintf("%s: %s", "bad request", string(body)))
 	} else {
-		return fillResponse(body)
+		return fillResponseFind(body)
 	}
 }
 
@@ -171,12 +171,33 @@ func checkResponseUpdate(res *http.Response) (response BitrixRestResponseUpdate,
 	}
 }
 
-func fillResponse(bodyRaw []byte) (response BitrixRestResponse, err error) {
+func checkResponseAdd(res *http.Response) (response BitrixRestResponseAdd, err error) {
+
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body)
+
+	if res.StatusCode != http.StatusOK {
+		if err != nil {
+			return response, err
+		}
+		return response, fmt.Errorf(fmt.Sprintf("%s: %s", "bad request", string(body)))
+	} else {
+		return fillResponseAdd(body)
+	}
+}
+
+func fillResponseFind(bodyRaw []byte) (response BitrixRestResponseFind, err error) {
 	err = json.Unmarshal(bodyRaw, &response)
 	return response, err
 }
 
 func fillResponseUpdate(bodyRaw []byte) (response BitrixRestResponseUpdate, err error) {
+	err = json.Unmarshal(bodyRaw, &response)
+	return response, err
+}
+
+func fillResponseAdd(bodyRaw []byte) (response BitrixRestResponseAdd, err error) {
 	err = json.Unmarshal(bodyRaw, &response)
 	return response, err
 }
