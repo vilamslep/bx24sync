@@ -254,8 +254,10 @@ func newContactFromClient(client sql.Client) Contact {
 
 	c := Contact{}
 
+	offset := 2000
+
 	c.Id = client.OriginId
-	c.Birthday = client.Birthday
+	c.Birthday = converter.SubtractionYearsOffset(client.Birthday, offset, "02.01.2006")
 
 	c.transforName(client.Name)
 
