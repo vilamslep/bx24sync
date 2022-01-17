@@ -47,7 +47,7 @@ func (r *Router) AddMethod(method HttpMethod) {
 func (r Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	url := *req.URL
-	logger := writerLogger{ResponseWriter: w, status: 200}
+	logger := ReponseLogger{ResponseWriter: w, status: 200}
 
 	if method, ok := r.methods[url.Path]; ok && method.isAllow(req.Method) {
 
@@ -189,16 +189,16 @@ func NewHttpMethod(path string, handler HandlerFunc, checkInput CheckInput, allo
 	}
 }
 
-type writerLogger struct {
+type ReponseLogger struct {
 	http.ResponseWriter
 	status int
 }
 
-func (l *writerLogger) WriteHeader(code int) {
+func (l *ReponseLogger) WriteHeader(code int) {
 	l.status = code
 	l.ResponseWriter.WriteHeader(code)
 }
 
-func (l *writerLogger) Status() int {
+func (l *ReponseLogger) Status() int {
 	return l.status
 }
