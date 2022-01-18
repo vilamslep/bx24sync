@@ -5,7 +5,7 @@ import (
 	"time"
 
 	mssql "github.com/denisenkom/go-mssqldb"
-	"github.com/vi-la-muerto/bx24sync"
+	"github.com/vilamslep/bx24sync"
 )
 
 func GetDatabaseConnection(config bx24sync.DataBaseConnection) (db *sql.DB, err error) {

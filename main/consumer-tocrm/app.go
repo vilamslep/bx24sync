@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	log "github.com/sirupsen/logrus"
-	bx24 "github.com/vi-la-muerto/bx24sync"
-	scheme "github.com/vi-la-muerto/bx24sync/scheme/bitrix24"
+	bx24 "github.com/vilamslep/bx24sync"
+	scheme "github.com/vilamslep/bx24sync/scheme/bitrix24"
 )
 
 type commit struct {
@@ -180,7 +180,6 @@ func sendToCrm(msg bx24.Message, target bx24.Endpoint) {
 			}
 		}
 	}
-
 }
 
 func commitLogMessage(msg commit) {

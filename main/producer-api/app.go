@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	bx24 "github.com/vi-la-muerto/bx24sync"
+	bx24 "github.com/vilamslep/bx24sync"
 )
 
 func main() {

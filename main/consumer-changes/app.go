@@ -5,11 +5,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"time"
 
 	log "github.com/sirupsen/logrus"
-	bx24 "github.com/vi-la-muerto/bx24sync"
-	scheme "github.com/vi-la-muerto/bx24sync/scheme/bitrix24"
+	bx24 "github.com/vilamslep/bx24sync"
+	scheme "github.com/vilamslep/bx24sync/scheme/bitrix24"
 )
 
 type gettingData func(io.Reader) ([][]byte, error)
@@ -105,7 +104,7 @@ func sendMessageToGenerator(msg bx24.Message, generator bx24.Endpoint, target bx
 		level:   "info",
 	})
 
-	if response, err := createAndExecRequest("POST", url, rd); err == nil {
+	if response, err := scheme.ExecReq("POST", url, rd); err == nil {
 		defer response.Body.Close()
 
 		if response.StatusCode != http.StatusOK {
@@ -175,7 +174,7 @@ func sendMessageToRegistrar(content [][]byte, key string, target bx24.Endpoint) 
 	for _, data := range content {
 		rd := bytes.NewReader(data)
 
-		if response, err := createAndExecRequest("POST", url, rd); err == nil {
+		if response, err := scheme.ExecReq("POST", url, rd); err == nil {
 			defer response.Body.Close()
 
 			if response.StatusCode != http.StatusOK {
@@ -192,16 +191,6 @@ func sendMessageToRegistrar(content [][]byte, key string, target bx24.Endpoint) 
 		}
 	}
 	return nil
-}
-
-func createAndExecRequest(method string, url string, rd io.Reader) (*http.Response, error) {
-
-	if req, err := http.NewRequest(method, url, rd); err == nil {
-		client := http.Client{Timeout: time.Second * 300}
-		return client.Do(req)
-	} else {
-		return nil, err
-	}
 }
 
 func commitLogMessage(msg commit) {

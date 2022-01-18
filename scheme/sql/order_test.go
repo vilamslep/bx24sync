@@ -2,7 +2,7 @@ package sql
 
 import "testing"
 
-func Test_ConvertToOrder_Success(t *testing.T) {
+func Test_ConvertToOrder_WithoutError(t *testing.T) {
 	data := getTestOrderDataSuccess()
 
 	sl := []map[string]string{
@@ -13,9 +13,16 @@ func Test_ConvertToOrder_Success(t *testing.T) {
 	if res, err := ConvertToOrders(scheme, sl); err != nil || res == nil {
 		t.Fatal(err)
 	}
-
+}
+ 
+func Test_convertToOrder_WithoutError( t *testing.T){
+	t.Fail()
 }
 
+func Test_LoadSegments_To_Order_WithoutError( t *testing.T) {
+	t.Fail()
+}
+ 
 func getTestOrderDataSuccess() map[string]string {
 	return map[string]string{
 		"ref":                "0x80B9A4BF015829F711E9992701CAD5FF",

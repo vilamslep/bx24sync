@@ -7,8 +7,8 @@ import (
 	"io"
 	"strings"
 
-	"github.com/vi-la-muerto/bx24sync/scheme/bitrix24/converter"
-	"github.com/vi-la-muerto/bx24sync/scheme/sql"
+	"github.com/vilamslep/bx24sync/scheme/bitrix24/converter"
+	"github.com/vilamslep/bx24sync/scheme/sql"
 )
 
 const (
@@ -30,16 +30,6 @@ type Deal struct {
 	Comment          string  `json:"COMMENTS"`
 	UsersFields      []UserField
 	UserFieldsPlurar []UserFiledPlurarValue
-}
-
-type UserField struct {
-	Id    string
-	Value string
-}
-
-type UserFiledPlurarValue struct {
-	Id    string
-	Value []string
 }
 
 func NewDealFromJson(raw []byte) (deal Deal, err error) {
@@ -135,6 +125,10 @@ func GetDealFromRawAsShipment(reader io.Reader) (data [][]byte, err error) {
 	return data, err
 }
 
+func (d *Deal) Json() ([]byte, error) {
+	return json.Marshal(d)
+}
+
 func (d Deal) Find(restUrl string) (response BitrixRestResponseFind, err error) {
 
 	if restUrl[len(restUrl)-1:] == "/" {
@@ -143,7 +137,7 @@ func (d Deal) Find(restUrl string) (response BitrixRestResponseFind, err error) 
 
 	url := fmt.Sprintf("%s/%s?filter[ORIGIN_ID]=%s", restUrl, findDeal, d.Id)
 
-	if res, err := execReq("GET", url, nil); err == nil {
+	if res, err := ExecReq("GET", url, nil); err == nil {
 		return checkResponseFind(res)
 	} else {
 		return response, err
@@ -163,12 +157,12 @@ func (d Deal) Add(restUrl string) (response BitrixRestResponseAdd, err error) {
 		return
 	}
 
-	rd, err := prepareDeal(d)
+	rd, err := d.getReader()
 	if err != nil {
 		return
 	}
 
-	if res, err := execReq("POST", url, rd); err == nil {
+	if res, err := ExecReq("POST", url, rd); err == nil {
 		return checkResponseAdd(res)
 	} else {
 		return response, err
@@ -187,12 +181,12 @@ func (d Deal) Update(restUrl string, id string) (response BitrixRestResponseUpda
 		return
 	}
 
-	rd, err := prepareDeal(d)
+	rd, err := d.getReader()
 	if err != nil {
 		return
 	}
 
-	if res, err := execReq("POST", url, rd); err == nil {
+	if res, err := ExecReq("POST", url, rd); err == nil {
 		return checkResponseUpdate(res)
 	} else {
 		return response, err
@@ -220,7 +214,7 @@ func (d *Deal) checkContact(url string) error {
 	return nil
 }
 
-func prepareDeal(d Deal) (rd io.Reader, err error) {
+func (d Deal) getReader() (rd io.Reader, err error) {
 
 	data := make(map[string]map[string]string)
 
@@ -545,8 +539,4 @@ func newDealFromShipment(shipment sql.Shipment) (Deal, error) {
 		})
 
 	return d, nil
-}
-
-func (d *Deal) Json() ([]byte, error) {
-	return json.Marshal(d)
 }

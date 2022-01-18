@@ -5,13 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
 	"strings"
-	"time"
 	"unicode"
 
-	"github.com/vi-la-muerto/bx24sync/scheme/bitrix24/converter"
-	"github.com/vi-la-muerto/bx24sync/scheme/sql"
+	"github.com/vilamslep/bx24sync/scheme/bitrix24/converter"
+	"github.com/vilamslep/bx24sync/scheme/sql"
 )
 
 const (
@@ -76,7 +74,7 @@ func (c Contact) Find(restUrl string) (response BitrixRestResponseFind, err erro
 
 	url := fmt.Sprintf("%s/%s?filter[ORIGIN_ID]=%s", restUrl, findContact, c.Id)
 
-	if res, err := execReq("GET", url, nil); err == nil {
+	if res, err := ExecReq("GET", url, nil); err == nil {
 		return checkResponseFind(res)
 	} else {
 		return response, err
@@ -91,22 +89,18 @@ func (c Contact) Add(restUrl string) (response BitrixRestResponseAdd, err error)
 
 	url := fmt.Sprintf("%s/%s", restUrl, addContact)
 
-	rd, err := prepareReader(c)
+	rd, err := c.getReader()
 	if err != nil {
 		return response, err
 	}
 
-	if res, err := execReq("POST", url, rd); err == nil {
+	if res, err := ExecReq("POST", url, rd); err == nil {
 		return checkResponseAdd(res)
 	} else {
 		return response, err
 	}
 }
 
-//TODO Fix error
-//response for update entity is different from add and find.
-//If response for adding and finding has entity ID, but response for updating has bool in result
-//And json encoder can't serialize it
 func (c Contact) Update(restUrl string, id string) (response BitrixRestResponseUpdate, err error) {
 	if restUrl[len(restUrl)-1:] == "/" {
 		restUrl = restUrl[:len(restUrl)-1]
@@ -114,19 +108,19 @@ func (c Contact) Update(restUrl string, id string) (response BitrixRestResponseU
 
 	url := fmt.Sprintf("%s/%s?id=%s", restUrl, updateContact, id)
 
-	rd, err := prepareReader(c)
+	rd, err := c.getReader()
 	if err != nil {
 		return response, err
 	}
 
-	if res, err := execReq("POST", url, rd); err == nil {
+	if res, err := ExecReq("POST", url, rd); err == nil {
 		return checkResponseUpdate(res)
 	} else {
 		return response, err
 	}
 }
 
-func prepareReader(c Contact) (rd io.Reader, err error) {
+func (c Contact) getReader() (rd io.Reader, err error) {
 
 	data := make(map[string]Contact)
 
@@ -137,69 +131,6 @@ func prepareReader(c Contact) (rd io.Reader, err error) {
 	} else {
 		return rd, err
 	}
-}
-
-func checkResponseFind(res *http.Response) (response BitrixRestResponseFind, err error) {
-
-	defer res.Body.Close()
-
-	body, err := io.ReadAll(res.Body)
-
-	if res.StatusCode != http.StatusOK {
-		if err != nil {
-			return response, err
-		}
-		return response, fmt.Errorf(fmt.Sprintf("%s: %s", "bad request", string(body)))
-	} else {
-		return fillResponseFind(body)
-	}
-}
-
-func checkResponseUpdate(res *http.Response) (response BitrixRestResponseUpdate, err error) {
-
-	defer res.Body.Close()
-
-	body, err := io.ReadAll(res.Body)
-
-	if res.StatusCode != http.StatusOK {
-		if err != nil {
-			return response, err
-		}
-		return response, fmt.Errorf(fmt.Sprintf("%s: %s", "bad request", string(body)))
-	} else {
-		return fillResponseUpdate(body)
-	}
-}
-
-func checkResponseAdd(res *http.Response) (response BitrixRestResponseAdd, err error) {
-
-	defer res.Body.Close()
-
-	body, err := io.ReadAll(res.Body)
-
-	if res.StatusCode != http.StatusOK {
-		if err != nil {
-			return response, err
-		}
-		return response, fmt.Errorf(fmt.Sprintf("%s: %s", "bad request", string(body)))
-	} else {
-		return fillResponseAdd(body)
-	}
-}
-
-func fillResponseFind(bodyRaw []byte) (response BitrixRestResponseFind, err error) {
-	err = json.Unmarshal(bodyRaw, &response)
-	return response, err
-}
-
-func fillResponseUpdate(bodyRaw []byte) (response BitrixRestResponseUpdate, err error) {
-	err = json.Unmarshal(bodyRaw, &response)
-	return response, err
-}
-
-func fillResponseAdd(bodyRaw []byte) (response BitrixRestResponseAdd, err error) {
-	err = json.Unmarshal(bodyRaw, &response)
-	return response, err
 }
 
 func removeNumbers(val string) (res string) {
@@ -278,15 +209,4 @@ func newContactFromClient(client sql.Client) Contact {
 	c.Email = converter.String(client.Email).ContactDataSlice(";", "PHONE", "EMAIL")
 
 	return c
-}
-
-func execReq(method string, url string, rd io.Reader) (*http.Response, error) {
-
-	if req, err := http.NewRequest(method, url, rd); err == nil {
-		req.Header.Set("Content-Type", "application/json")
-		client := http.Client{Timeout: time.Second * 300}
-		return client.Do(req)
-	} else {
-		return nil, err
-	}
 }

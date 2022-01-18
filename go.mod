@@ -1,4 +1,4 @@
-module github.com/vi-la-muerto/bx24sync
+module github.com/vilamslep/bx24sync
 
 go 1.16
 

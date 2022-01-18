@@ -40,8 +40,6 @@ func ConvertToClients(scheme []Field, data []map[string]string) (b []Client, err
 	return res, err
 }
 
-
-
 func convert(scheme []Field, data map[string]string) (c Client, err error) {
 	if err := checkByScheme(data, scheme); err != nil {
 		return Client{}, err

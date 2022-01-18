@@ -11,10 +11,10 @@ import (
 	"os"
 	"strings"
 
-	bx24 "github.com/vi-la-muerto/bx24sync"
-	schemeConf "github.com/vi-la-muerto/bx24sync/scheme/sql"
-	sqlI "github.com/vi-la-muerto/bx24sync/sql"
-	mssql "github.com/vi-la-muerto/bx24sync/sql/mssql"
+	bx24 "github.com/vilamslep/bx24sync"
+	schemeConf "github.com/vilamslep/bx24sync/scheme/sql"
+	sqlI "github.com/vilamslep/bx24sync/sql"
+	mssql "github.com/vilamslep/bx24sync/sql/mssql"
 )
 
 func main() {
