@@ -281,7 +281,7 @@ SELECT
 	CASE
 		WHEN _client.birthday = '2001-01-01 00:00:00.000'
 		THEN NULL
-		ELSE _client.birthday, 'dd.MM.yyyy', 'ru-RU')
+		ELSE FORMAT(_client.birthday, 'dd.MM.yyyy', 'ru-RU')
 	END AS birthday,
 	_client.gender,
 	_client.isClient,

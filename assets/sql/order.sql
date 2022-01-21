@@ -1,10 +1,8 @@
 USE dev
 
 DECLARE @order BINARY(16)
-DECLARE @yearsOffset NUMERIC(4)
 DECLARE @docType VARCHAR(20)
-
-SELECT @yearsOffset = offset FROM dbo._YearOffset
+DECLARE @shipmentDate CHAR(10)
 
 SET @order = ${order} 
 SET @docType = 'Заказ клиента'
@@ -124,11 +122,22 @@ INTO #schedules
 FROM #paymentByKind  t1 WITH(NOLOCK)
 GROUP BY t1.ref
 
+SELECT MAX(t._Date_Time) as shipmentDate
+INTO #shipment
+FROM dbo._Document431 t
+WHERE t._Fld10606_TYPE = 0x08 AND t._Fld10606_RTRef = 0x0000016F AND t._Fld10606_RRRef = @order
+
+SELECT @shipmentDate = FORMAT(t.shipmentDate, 'dd.MM.yyyy', 'ru-RU') FROM #shipment t
+
+DROP TABLE #shipment
+
 SELECT 
 	t1.*,
 	ISNULL(t2.prepaid, 0) as prepaid,
 	ISNULL(t2.prepayment, 0) as prepayment,
-	ISNULL(t2.credit, 0) as credit
+	ISNULL(t2.credit, 0) as credit,
+	CASE WHEN ISNULL(@shipmentDate,'') = '' THEN 0x00 ELSE 0x01 END closed,
+	ISNULL(@shipmentDate, 'NULL') as finishDate
 FROM
 	#orders t1
 	LEFT OUTER JOIN #schedules t2

@@ -122,5 +122,13 @@
     {
         "Key": "credit",
         "Required": true
+    },
+    {
+        "Key": "closed",
+        "Required":true
+    },
+    {
+        "Key":"finishDate",
+        "Required":true
     }
 ]

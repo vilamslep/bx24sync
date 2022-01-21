@@ -82,7 +82,7 @@ func NewGeneratorConfigFromEnv() GeneratorConfig {
 		Web: Socket{
 			Port: GetEnvAsInt("HTTP_PORT", 8080),
 		},
-		StorageQueryTxt: "./sql",
+		StorageQueryTxt: GetEnvAsString("SQL_QUERY_TEXT_PATH", "./sql"),
 		CheckInput:      GetEnvAsBool("HTTP_CHECK_INPUT", true),
 	}
 }

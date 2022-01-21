@@ -37,6 +37,8 @@ type Order struct {
 	Credit             string    `json:"credit"`
 	Department         string    `json:"department"`
 	Segments           []Segment `json:"segment"`
+	Closed             string    `json:"closed"`
+	FinishDate         string    `json:"finishDate"`
 }
 
 func ConvertToOrders(scheme []Field, data []map[string]string) ([]Order, error) {
