@@ -19,11 +19,11 @@ func GetBitrixSegment(v string) (string, error) {
 	}
 }
 
-func GetCategoryInOrder(orderType string, internetOrder bool) (int) {
-	var(
+func GetCategoryInOrder(orderType string, internetOrder bool) int {
+	var (
 		offlineSales int = 7
-		onlineSales int = 4
-		remake int = 8
+		onlineSales  int = 4
+		remake       int = 8
 	)
 	if internetOrder {
 		return onlineSales
@@ -36,16 +36,16 @@ func GetCategoryInOrder(orderType string, internetOrder bool) (int) {
 
 func GetInternetOrderStage(stage string) (string, error) {
 	stages := map[string]string{
-		"1":"C4:NEW",
-		"2":"C4:5",
-		"3":"C4:PREPARATION",
-		"4":"C4:6",
-		"5":"C4:PREPAYMENT_INVOICE",
-		"6":"C4:EXECUTING",
-		"7":"C4:7",
-		"8":"C4:WON",
-		"9":"C4:LOSE",
-		"10":"C4:8",
+		"1":  "C4:NEW",
+		"2":  "C4:5",
+		"3":  "C4:PREPARATION",
+		"4":  "C4:6",
+		"5":  "C4:PREPAYMENT_INVOICE",
+		"6":  "C4:EXECUTING",
+		"7":  "C4:7",
+		"8":  "C4:WON",
+		"9":  "C4:LOSE",
+		"10": "C4:8",
 	}
 	if s, ok := stages[stage]; !ok {
 		return "", fmt.Errorf("can't get stage. Check map which is stages storage")
@@ -54,17 +54,27 @@ func GetInternetOrderStage(stage string) (string, error) {
 	}
 }
 
-func GetOrderStageByKind(kind string) (string) {
+func GetOrderStageByKind(kind string, closed bool) string {
+	var pipline int
+	var stage string
 	if kind == "1" {
-		return "C7:NEW"
+		pipline = 7
 	} else {
-		return "C8:NEW"
+		pipline = 8
 	}
+
+	if closed {
+		stage = "WON"
+	} else {
+		stage = "NEW"
+	}
+	return fmt.Sprintf("C%d:%s", pipline, stage)
+
 }
 
-func SubtractionYearsOffset(dstr string, offset int, format string) (string) {
+func SubtractionYearsOffset(dstr string, offset int, format string) string {
 	if date, err := time.Parse(format, dstr); err == nil {
-		return date.AddDate(-offset, 0,0).Format(format)
+		return date.AddDate(-offset, 0, 0).Format(format)
 	} else {
 		return dstr
 	}

@@ -28,6 +28,8 @@ type Deal struct {
 	Sum              float32 `json:"OPPORTUNITY"`
 	Stage            string  `json:"STAGE_ID"`
 	Comment          string  `json:"COMMENTS"`
+	FinishDate       string  `json:"CLOSEDATE"`
+	Closed           bool    `json:"CLOSED"`
 	UsersFields      []UserField
 	UserFieldsPlurar []UserFiledPlurarValue
 }
@@ -256,9 +258,11 @@ func newDealFromReception(reception sql.Reception) Deal {
 	d.Name = reception.Name
 	d.User = converter.String(reception.UserId).Int()
 	d.Date = reception.Date
+	d.FinishDate = reception.Date
+	d.Closed = true
 	d.Category = 5
 	d.ContactData = newContactFromClient(reception.Client)
-	d.Stage = "C5:NEW"
+	d.Stage = "C5:WON"
 
 	for _, addFld := range reception.AdditionnalFields {
 		var key, value string
@@ -298,6 +302,9 @@ func newDealFromOrder(order sql.Order) (Deal, error) {
 
 	d.ContactData = newContactFromClient(order.Client)
 
+	d.Closed = converter.String(order.Closed).BinaryTrue()
+	d.FinishDate = converter.SubtractionYearsOffset(order.FinishDate, offset, "02.01.2006")
+
 	if isInternetOrder {
 		if stg, err := converter.GetInternetOrderStage(order.InternetOrderStage); err == nil {
 			d.Stage = stg
@@ -305,12 +312,13 @@ func newDealFromOrder(order sql.Order) (Deal, error) {
 			return d, err
 		}
 	} else {
-		d.Stage = converter.GetOrderStageByKind(order.OrderType)
+		d.Stage = converter.GetOrderStageByKind(order.OrderType, d.Closed)
 	}
 
 	d.Comment = order.Comment
 	d.Sum = converter.String(order.Sum).Float32()
 
+	
 	d.UsersFields = append(
 		d.UsersFields,
 		UserField{Id: "UF_CRM_1594208144",
@@ -474,7 +482,8 @@ func newDealFromShipment(shipment sql.Shipment) (Deal, error) {
 	d.Name = shipment.Name
 	d.User = converter.String(shipment.User).Int()
 	d.Date = converter.SubtractionYearsOffset(shipment.Date, offset, "02.01.2006")
-
+	d.FinishDate = d.Date
+	d.Closed = true
 	d.Category = 7
 
 	d.ContactData = newContactFromClient(shipment.Client)

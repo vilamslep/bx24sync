@@ -37,12 +37,12 @@ func getCorrectlyReception() Reception {
 		},
 		UserId: "111",
 		AdditionnalFields: []AdditionalField{
-			AdditionalField{Key: "Key1", Value: "Value1"},
-			AdditionalField{Key: "Key2", Value: "Value2"},
-			AdditionalField{Key: "Key3", Value: "Value3"},
-			AdditionalField{Key: "Key4", Value: "Value4"},
-			AdditionalField{Key: "Key5", Value: "Value5"},
-			AdditionalField{Key: "Key6", Value: "Value6"},
+			{Key: "Key1", Value: "Value1"},
+			{Key: "Key2", Value: "Value2"},
+			{Key: "Key3", Value: "Value3"},
+			{Key: "Key4", Value: "Value4"},
+			{Key: "Key5", Value: "Value5"},
+			{Key: "Key6", Value: "Value6"},
 		},
 	}
 }
