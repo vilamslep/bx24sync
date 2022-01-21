@@ -32,7 +32,7 @@ func Test_convert_WithoutError(t *testing.T) {
 		DiscountMedicalThings:     "0",
 		DiscountRayban:            "10",
 		Phone:                     "89091111111;",
-		Email:                     "",
+		Email:                     "mail@mail.ru;",
 	}
 
 	item := map[string]string{
@@ -112,7 +112,7 @@ func Test_convert_NotFoundKeyError(t *testing.T) {
 		{Key: "discountRayban", Required: true},
 		{Key: "phone", Required: true},
 		{Key: "email", Required: true},
-	}	
+	}
 
 	if _, err := convert(scheme, data); err == nil {
 		t.Error("Must be return error. Error expected is  'not found item by key'")
