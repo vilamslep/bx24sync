@@ -20,8 +20,6 @@ type commit struct {
 }
 
 func main() {
-	bx24.LoadEnv(".env")
-
 	log.SetFormatter(&log.TextFormatter{
 		ForceColors:   true,
 		FullTimestamp: true,
@@ -54,7 +52,7 @@ func runScanner() error {
 
 		marker <- struct{}{}
 
-		go func(marker chan struct{}, msg bx24.Message) {
+		func(marker chan struct{}, msg bx24.Message) {
 			sendMessageToGenerator(msg, config.GeneratorEndpoint, config.TargetEndpoint)
 			<-marker
 		}(marker, msg)
