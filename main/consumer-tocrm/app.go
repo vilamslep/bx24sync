@@ -15,8 +15,6 @@ type commit struct {
 }
 
 func main() {
-	bx24.LoadEnv(".env")
-
 	log.SetFormatter(&log.TextFormatter{
 		ForceColors:   true,
 		FullTimestamp: true,
@@ -147,7 +145,7 @@ func sendToCrm(msg bx24.Message, target bx24.Endpoint) {
 			message: "Add new entity",
 			level:   "info",
 		})
-		
+
 		if _, err := entity.Add(restUrl); err != nil {
 			commitLogMessage(commit{
 				fields:  log.Fields{"key": string(msg.Key), "offset": msg.Offset, "topic": msg.Topic, "value": string(msg.Value)},

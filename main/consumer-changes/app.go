@@ -52,7 +52,7 @@ func runScanner() error {
 
 		marker <- struct{}{}
 
-		func(marker chan struct{}, msg bx24.Message) {
+		go func(marker chan struct{}, msg bx24.Message) {
 			sendMessageToGenerator(msg, config.GeneratorEndpoint, config.TargetEndpoint)
 			<-marker
 		}(marker, msg)
