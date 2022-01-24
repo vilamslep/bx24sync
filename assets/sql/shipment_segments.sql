@@ -388,7 +388,7 @@ select
 	cast(_segment.segment as int) as segment,
 	_segment.brand
 from #segments as _segment
-
+where _segment.segment <> 0
 DROP TABLE #segments
 DROP TABLE #tpresentsGrps
 DROP TABLE #tCareProdGrps

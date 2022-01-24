@@ -381,6 +381,7 @@ SELECT
 	CAST(_segment.segment AS INT) AS segment,
 	_segment.brand
 FROM #segments AS _segment
+WHERE _segment.segment <> 0
 
 DROP TABLE #segments
 DROP TABLE #tpresentsGrps
