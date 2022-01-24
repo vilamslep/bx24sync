@@ -235,13 +235,14 @@ func (d Deal) getReader() (rd io.Reader, err error) {
 	deal["CLOSEDATE"] = fmt.Sprint(d.FinishDate)
 	deal["CLOSED"] = fmt.Sprint(d.Closed)
 	deal["STAGE_ID"] = fmt.Sprint(d.Stage)
+	deal["OPPORTUNITY"] = fmt.Sprint(d.Sum)
 
 	for _, v := range d.UsersFields {
 		deal[v.Id] = v.Value
 	}
 
 	for _, v := range d.UserFieldsPlurar {
-		deal[v.Id] = fmt.Sprintf("[%s]", strings.Join(v.Value, ","))
+		deal[v.Id] = fmt.Sprintf("[\"%s\"]", strings.Join(v.Value, "\",\""))
 	}
 
 	data["fields"] = deal
@@ -321,7 +322,6 @@ func newDealFromOrder(order sql.Order) (Deal, error) {
 	d.Comment = order.Comment
 	d.Sum = converter.String(order.Sum).Float32()
 
-	
 	d.UsersFields = append(
 		d.UsersFields,
 		UserField{Id: "UF_CRM_1594208144",
