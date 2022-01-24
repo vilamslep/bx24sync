@@ -51,19 +51,25 @@ type ContactData struct {
 func (s String) ContactDataSlice(sep string, valType string, idType string) []ContactData {
 
 	if len(s) == 0 {
-		return nil
+		return []ContactData{
+			{ValueType: valType, TypeId: idType},
+		}
 	}
 
 	target := make([]ContactData, 0)
 
-	for _, piece := range strings.Split(string(s), sep) {
-		item := ContactData{
-			ValueType: valType,
-			Value:     piece,
-			TypeId:    idType,
-		}
+	slContacData := strings.Split(string(s), sep)
 
-		target = append(target, item)
+	for _, piece := range slContacData {
+		if len(piece) > 0 {
+			item := ContactData{
+				ValueType: valType,
+				Value:     piece,
+				TypeId:    idType,
+			}
+
+			target = append(target, item)
+		}
 	}
 
 	return target

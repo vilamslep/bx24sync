@@ -44,7 +44,7 @@ func runScanner() error {
 	for scanner.Scan() {
 		msg := scanner.Message()
 		marker <- struct{}{}
-		go func(marker chan struct{}, msg bx24.Message) {
+		func(marker chan struct{}, msg bx24.Message) {
 			sendToCrm(msg, config.TargetEndpoint)
 			<-marker
 		}(marker, msg)

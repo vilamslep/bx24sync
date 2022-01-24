@@ -100,7 +100,15 @@ func (c Contact) Add(restUrl string) (response BitrixRestResponseAdd, err error)
 		return response, err
 	}
 }
-
+// for cleaning contact data at first need to get id entity
+// array should be such as 
+// [ 
+// 	"$entityId" => {
+// 		"VALUE_TYPE" => "WORK", 
+// 		"VALUE" => "", 
+// 		"TYPE_ID" => "PHONE" 
+// 	}
+// ]
 func (c Contact) Update(restUrl string, id string) (response BitrixRestResponseUpdate, err error) {
 	if restUrl[len(restUrl)-1:] == "/" {
 		restUrl = restUrl[:len(restUrl)-1]
@@ -205,8 +213,8 @@ func newContactFromClient(client sql.Client) Contact {
 	c.SendAds = converter.String(client.SendAds).BinaryTrue()
 	c.IsClinicClient = converter.String(client.IsClinicClient).BinaryTrue()
 
-	c.Phone = converter.String(client.Phone).ContactDataSlice(";", "PHONE", "WORK")
-	c.Email = converter.String(client.Email).ContactDataSlice(";", "PHONE", "EMAIL")
+	c.Phone = converter.String(client.Phone).ContactDataSlice(";", "WORK", "PHONE")
+	c.Email = converter.String(client.Email).ContactDataSlice(";", "WORK", "EMAIL")
 
 	return c
 }
