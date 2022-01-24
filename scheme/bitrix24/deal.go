@@ -232,6 +232,9 @@ func (d Deal) getReader() (rd io.Reader, err error) {
 	deal["BEGINDATE"] = d.Date
 	deal["CATEGORY_ID"] = fmt.Sprint(d.Category)
 	deal["CONTACT_ID"] = fmt.Sprint(d.ContactId)
+	deal["CLOSEDATE"] = fmt.Sprint(d.FinishDate)
+	deal["CLOSED"] = fmt.Sprint(d.Closed)
+	deal["STAGE_ID"] = fmt.Sprint(d.Stage)
 
 	for _, v := range d.UsersFields {
 		deal[v.Id] = v.Value
